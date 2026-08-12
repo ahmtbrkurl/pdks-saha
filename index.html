@@ -42,7 +42,7 @@
 <body>
 
 <div class="card">
-    <div id="networkStatus">📡 Çevrimiçi (Online)</div>
+    <div id="networkStatus">📡 Çevrimiçi (Online) - Güvenli Senkronizasyon</div>
     <h3>PDKS Saha Terminali</h3>
 
     <!-- Bireysel Giriş Paneli -->
@@ -156,11 +156,11 @@
     function updateNetworkStatus() {
         const statusDiv = document.getElementById('networkStatus');
         if (navigator.onLine) {
-            statusDiv.textContent = '📡 Çevrimiçi (Online)';
+            statusDiv.textContent = '📡 Çevrimiçi (Online) - Güvenli Senkronizasyon';
             statusDiv.classList.remove('offline');
             syncOfflineQueue();
         } else {
-            statusDiv.textContent = '⚠️ Çevrimdışı (Offline)';
+            statusDiv.textContent = '⚠️ Çevrimdışı (Offline) - Veriler Şifreli Saklanacak';
             statusDiv.classList.add('offline');
         }
     }
