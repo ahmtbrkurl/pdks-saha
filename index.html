@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDKS Saha Terminali - Profesyonel</title>
+    <title>PDKS Saha Terminali - Profesyonel (Giriş Destekli)</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
@@ -47,43 +47,44 @@
 
     <!-- Bireysel Giriş Paneli -->
     <div class="login-box" id="loginBox">
-        <label>Personel Kullanıcı Adı:</label>
+        <label>Kullanıcı Adı:</label>
         <input type="text" id="usernameInput" placeholder="Örn: ahmet">
         <label>Şifre:</label>
         <input type="password" id="passwordInput" placeholder="****">
-        <button class="action-btn" style="padding: 10px; font-size: 13px;" onclick="verifyUserLogin()">Giriş Yap</button>
+        <button class="action-btn" style="padding: 10px; font-size: 13px;" onclick="doUserLogin()">Giriş Yap</button>
     </div>
     
     <div class="mode-grid">
-        <button class="mode-btn" id="btn-GİRİŞ" onclick="setMode('GİRİŞ')">GİRİŞ</button>
-        <button class="mode-btn" id="btn-ÇIKIŞ" onclick="setMode('ÇIKIŞ')">ÇIKIŞ</button>
-        <button class="mode-btn" id="btn-İZİNLİ" onclick="setMode('İZİNLİ')">İZİNLİ</button>
-        <button class="mode-btn" id="btn-RAPORLU" onclick="setMode('RAPORLU')">RAPORLU</button>
+        <button class="mode-btn" id="btn-İZİNLİ" onclick="setMode('İZİNLİ')" disabled>İZİNLİ</button>
+        <button class="mode-btn" id="btn-RAPORLU" onclick="setMode('RAPORLU')" disabled>RAPORLU</button>
     </div>
     
-    <div id="statusBox" class="status">Önce giriş yapın veya işlem tipi seçin.</div>
+    <div id="statusBox" class="status">Lütfen önce giriş yapın.</div>
 
     <button class="action-btn" id="gpsBtn" onclick="getLiveLocation()" disabled>1. Konum Al ve Kilitle</button>
     <button class="action-btn btn-green" id="nfcBtn" onclick="startNfcScan()" disabled>2. NFC Kart Okut</button>
 
     <div class="personnel-box" id="personnelBox">
-        <label for="personSelect" style="font-size: 12px; font-weight: bold; color: #333;">Personel Seçiniz:</label>
-        <select id="personSelect">
-            <option value="">-- Personel Seçin --</option>
-        </select>
+        <div id="formenPanel" style="display: none; margin-bottom: 10px;">
+            <label for="personSelect" style="font-size: 12px; font-weight: bold; color: #333;">Data Gireceğiniz Personeli Seçiniz:</label>
+            <select id="personSelect"><option value="">-- Personel Seçin --</option></select>
+        </div>
+        <div id="userPanel" style="display: none; font-size: 14px; font-weight: bold; background: #e9ecef; padding: 10px; border-radius: 6px; color: #333; margin-bottom: 10px;">
+            Veriler sizin adınıza girilecektir.
+        </div>
         
         <!-- Sıkıştırma Destekli Fotoğraf Yükleme -->
         <div class="file-upload-box" id="fileUploadBox">
-            <label style="font-size: 11px; color: #d9534f; font-weight: bold;">⚠️ İzin / Rapor Belge Fotoğrafı Çekin:</label>
+            <label style="font-size: 11px; color: #d9534f; font-weight: bold;">⚠️ Belge Fotoğrafı Çekin:</label>
             <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleFileSelect(this)">
             <div id="uploadStatus">Hazır.</div>
         </div>
 
-        <button class="action-btn btn-orange" id="submitPersonBtn" onclick="submitPersonnelStatus()" disabled>Belgeyi ve Durumu Kaydet</button>
+        <button class="action-btn btn-orange" id="submitPersonBtn" onclick="submitPersonnelStatus()" disabled>Verileri ve Durumu Kaydet</button>
     </div>
 
     <div class="log" id="logBox">
-        > Terminal başlatıldı.<br>
+        > Terminal başlatıldı. Lütfen giriş yapın.<br>
     </div>
 </div>
 
@@ -95,22 +96,75 @@
     
     let currentMode = null;
     let verifiedGps = { lat: null, lng: null };
-    let globalPersonnelList = [];
-    let loggedInUser = null;
+    let loggedInUser = null; // Giriş yapan kullanıcının tüm bilgileri (ID, Ad, Unvan)
+    let globalPersonnelList = []; // Tüm personel listesi (sadece Formen'ler için)
     let compressedBase64 = ""; // Sıkıştırılmış resmi tutacak değişken
 
     window.addEventListener('online', updateNetworkStatus);
     window.addEventListener('offline', updateNetworkStatus);
     window.addEventListener('load', initializeApp);
 
-    async function initializeApp() {
+    function initializeApp() {
         updateNetworkStatus();
-        await loadPersonnelList();
+        logMessage("[SİSTEM] Terminal hazır, lütfen giriş yapın.");
     }
 
-    async function loadPersonnelList() {
+    // --- YENİ: Giriş (Login) Mantığı ---
+    async function doUserLogin() {
+        const uName = document.getElementById('usernameInput').value.trim();
+        const uPass = document.getElementById('passwordInput').value.trim();
+
+        if (!uName || !uPass) { alert("Kullanıcı adı ve şifre girin!"); return; }
+
+        updateStatus(`Giriş yapılıyor...`, "#fff3cd", "#856404");
+        document.querySelector('.login-box button').disabled = true;
+        logMessage(`[GİRİŞ] Deneniyor: ${uName}...`);
+
         try {
-            let response = await fetch(API_URL);
+            let response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ token: AUTH_TOKEN, action: 'login', username: uName, password: uPass })
+            });
+            
+            let textData = await response.text();
+            let result = JSON.parse(textData);
+
+            if (result.status === "success") {
+                loggedInUser = result.user; // ID, ad, unvan
+                document.getElementById('loginBox').style.backgroundColor = '#d4edda';
+                logMessage(`[BAŞARILI] Hoş geldiniz, ${loggedInUser.ad} (${loggedInUser.unvan}).`);
+                updateStatus(`Giriş Başarılı, mod seçin.`, "#d4edda", "#155724");
+                
+                // Mod butonlarını aktif et
+                document.getElementById('btn-İZİNLİ').disabled = false;
+                document.getElementById('btn-RAPORLU').disabled = false;
+                
+                // Formen ise tüm listeyi indir, User ise indirme
+                if (loggedInUser.unvan === 'Formen') {
+                    await loadPersonnelListForFormen();
+                }
+
+            } else {
+                alert("HATA: " + result.message);
+                updateStatus("Giriş başarısız.", "#f8d7da", "#721c24");
+                logMessage(`[REDDEDİLDİ] Giriş başarısız: ${result.message}`);
+                document.querySelector('.login-box button').disabled = false;
+            }
+        } catch (error) {
+            logMessage(`[HATA] Giriş işlemi başarısız: ${error}`);
+            alert("Giriş işlemi sırasında hata oluştu. Bağlantıyı kontrol edin.");
+            document.querySelector('.login-box button').disabled = false;
+        }
+    }
+
+    // Sadece Formen'ler için tüm personel listesini indirme mantığı
+    async function loadPersonnelListForFormen() {
+        if (!loggedInUser || loggedInUser.unvan !== 'Formen') return;
+
+        try {
+            logMessage("[SİSTEM] Personel listesi indiriliyor...");
+            let response = await fetch(API_URL); // doGet varsayılan listeyi dönecek
             let textData = await response.text();
             let result = JSON.parse(textData);
             
@@ -120,38 +174,19 @@
                 select.innerHTML = '<option value="">-- Personel Seçin --</option>';
                 globalPersonnelList.forEach(p => {
                     let opt = document.createElement('option');
-                    opt.value = p.id;
+                    opt.value = p.id + " (" + p.ad + ")"; // 'caner (Caner Yıldız)' formatında
                     opt.textContent = p.ad;
                     select.appendChild(opt);
                 });
-                logMessage("[SİSTEM] Personel listesi senkronize edildi.");
+                logMessage("[BAŞARILI] Personel listesi yüklendi.");
+            } else {
+                logMessage(`[HATA] Personel listesi yüklenemedi: ${result.message}`);
             }
         } catch (e) {
-            logMessage("[HATA] Personel listesi yüklenemedi. (Offline?)");
+            logMessage("[HATA] Personel listesi indirilemedi. (Offline?)");
         }
     }
-
-    function verifyUserLogin() {
-        let uName = document.getElementById('usernameInput').value.trim().toLowerCase();
-        let pass = document.getElementById('passwordInput').value.trim();
-        let found = globalPersonnelList.find(p => p.kullanici_adi === uName && p.sifre === pass);
-        if (found) {
-            loggedInUser = found;
-            document.getElementById('loginBox').style.backgroundColor = '#d4edda';
-            updateStatus(`Hoş geldiniz, ${found.ad}`, "#d4edda", "#155724");
-            logMessage(`[GİRİŞ] ${found.ad}`);
-            
-            // Giriş başarılıysa Giriş Yap butonunu pasife al
-            const loginBtn = document.querySelector('.login-box button');
-            if (loginBtn) {
-                loginBtn.disabled = true;
-                loginBtn.style.backgroundColor = '#ccc';
-                loginBtn.style.color = '#333';
-            }
-        } else {
-            alert("Kullanıcı adı veya şifre hatalı!");
-        }
-    }
+    // ------------------------------------
 
     function updateNetworkStatus() {
         const statusDiv = document.getElementById('networkStatus');
@@ -160,13 +195,13 @@
             statusDiv.classList.remove('offline');
             syncOfflineQueue();
         } else {
-            statusDiv.textContent = '⚠️ Çevrimdışı (Offline) - Veriler Şifreli Saklanacak';
+            statusDiv.textContent = '⚠️ Çevrimdışı (Offline) - Veriler Cihaza Kaydedilecek';
             statusDiv.classList.add('offline');
         }
     }
 
     function setMode(mode) {
-        if(!loggedInUser) { alert("Önce personel girişi yapmalısınız!"); return; }
+        if (!loggedInUser) { alert("Lütfen önce giriş yapın!"); return; }
         currentMode = mode;
         document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById('btn-' + mode).classList.add('active');
@@ -182,8 +217,14 @@
             document.getElementById('personnelBox').style.display = 'block';
             document.getElementById('fileUploadBox').style.display = 'block';
             
-            // Personel seçiciyi giriş yapan kişiye otomatik ayarla
-            document.getElementById('personSelect').value = loggedInUser.id;
+            // Formen/User Ayrımı
+            if (loggedInUser.unvan === 'Formen') {
+                document.getElementById('formenPanel').style.display = 'block';
+                document.getElementById('userPanel').style.display = 'none';
+            } else {
+                document.getElementById('formenPanel').style.display = 'none';
+                document.getElementById('userPanel').style.display = 'block';
+            }
         } else {
             document.getElementById('nfcBtn').style.display = 'block';
             document.getElementById('personnelBox').style.display = 'none';
@@ -206,13 +247,11 @@
             (position) => {
                 verifiedGps.lat = position.coords.latitude;
                 verifiedGps.lng = position.coords.longitude;
-                updateStatus(`Konum Kilitlendi.`, "#d4edda", "#155724");
-                logMessage(`[GPS OK] Koordinat alındı.`);
+                updateStatus(`Konum Alındı, belge fotoğrafı çekin.`, "#d4edda", "#155724");
+                logMessage(`[GPS OK] Koordinat alındı. Belge fotoğrafı çekin.`);
 
                 if(currentMode === 'İZİNLİ' || currentMode === 'RAPORLU') {
-                    document.getElementById('fileUploadBox').style.display = 'block';
-                    logMessage("Lütfen belge fotoğrafı çekin.");
-                    // Kaydet butonu fotoğraf seçilip sıkıştırılınca açılacak
+                    // Kaydet butonu fotoğraf sıkıştırılınca açılacak
                 } else {
                     document.getElementById('nfcBtn').disabled = false;
                     logMessage("Sistem kart okumaya hazır.");
@@ -226,7 +265,7 @@
         );
     }
 
-    // --- YENİ: Fotoğraf Sıkıştırma Fonksiyonları ---
+    // --- Fotoğraf Sıkıştırma Fonksiyonları ---
     function handleFileSelect(input) {
         const file = input.files[0];
         if (file) {
@@ -274,48 +313,105 @@
                 const btn = document.getElementById('submitPersonBtn');
                 btn.style.display = 'block'; // Görünür yap
                 btn.disabled = false;    // Tıklanabilir yap
+                btn.innerText = "Verileri ve Durumu Kaydet"; // Metni güncelle
             }
         };
     }
     // ----------------------------------------------
 
+    // --- YENİ: Ek Veri Toplama ve Gönderme Mantığı ---
     async function submitPersonnelStatus() {
         const s = document.getElementById('personSelect');
-        if (!s.value) { alert("Lütfen bir personel seçin!"); return; }
+        let targetPersonnel;
 
-        updateStatus(`KAYDEDİLİYOR...`, "#fff3cd", "#856404");
+        if (loggedInUser.unvan === 'Formen') {
+            if (!s.value) { alert("Lütfen bir personel seçin!"); return; }
+            targetPersonnel = s.value; // Seçilen personelin ID+Adı
+        } else {
+            // User ise kendi adını al
+            targetPersonnel = loggedInUser.id + " (" + loggedInUser.ad + ")"; // Otomatik
+        }
+
+        updateStatus(`Veriler gönderiliyor...`, "#fff3cd", "#856404");
         document.getElementById('submitPersonBtn').disabled = true;
+        logMessage(`[AĞ] Gönderiliyor: ${targetPersonnel}...`);
 
-        // --- SAAT DÜZELTMESİ (Frontend'den silindi, Backend oluşturacak) ---
-        // tarih_saat satırı silindi.
+        // >>> KRİTİK EKLEME: Ek Verileri Topla <<<
+        // 1. Cihaz Bilgisi (Tarayıcı User-Agent)
+        const userAgentString = navigator.userAgent;
+        // 2. IP Adresi (Cihazın public IP'sini alır)
+        // Public bir API kullanarak istemcinin IP'sini alıyoruz
+        let publicIP = "Bilinmeyen IP";
+        try {
+            const ipResponse = await fetch('https://api.ipify.org?format=json');
+            const ipData = await ipResponse.json();
+            publicIP = ipData.ip;
+        } catch (ipError) {
+            console.warn("Public IP adresi alınamadı (fetch error).");
+        }
+        // ----------------------------------------
+
         let data = {
             token: AUTH_TOKEN,
+            action: 'save_data', // doPost içindeki hedef fonksiyon
             islem_tipi: currentMode,
-            kart_uid: s.value + " (" + s.options[s.selectedIndex].text + ")",
+            target_personel: targetPersonnel, // caner (Caner Yıldız)
             enlem: verifiedGps.lat,
             boylam: verifiedGps.lng,
             senkron_durumu: navigator.onLine ? "Canlı İletim" : "Cihazdan Senkronize",
             image_base64: compressedBase64, // Sıkıştırılmış resim
-            image_type: "image/jpeg"
+            image_type: "image/jpeg",
+            
+            // >>> EK VERİLER (Sütunlara işlenecek) <<<
+            gönderen_personel: loggedInUser.ad, // Giriş yapan Formen/User adı
+            ip_adresi: publicIP, // Cihazın public IP'si
+            cihaz_bilgisi: userAgentString // navigator.userAgent dizesi
+            // ----------------------------------------
         };
+        
         await processRecord(data);
-        s.value = ""; document.getElementById('fileUploadBox').style.display = 'none'; compressedBase64 = ""; document.getElementById('uploadStatus').innerText = "Hazır."; document.getElementById('submitPersonBtn').style.display = 'none';
+        
+        // Formu sıfırla
+        if (loggedInUser.unvan === 'Formen') { s.value = ""; }
+        document.getElementById('fileUploadBox').style.display = 'none';
+        compressedBase64 = "";
+        document.getElementById('uploadStatus').innerText = "Hazır.";
+        document.getElementById('submitPersonBtn').style.display = 'none';
     }
+    // ----------------------------------------------
 
     async function startNfcScan() {
         if (!('NDEFReader' in window)) { alert("Web NFC bu cihazda desteklenmiyor."); return; }
         try {
             const ndef = new NDEFReader();
             await ndef.scan();
-            updateStatus(`NFC Aktif! Kart okutun... (${currentMode})`, "#cce5ff", "#004085");
+            updateStatus(`NFC Aktif! Kart okutun...`, "#cce5ff", "#004085");
+            logMessage(`[NFC] Tarayıcı aktif.`);
 
             ndef.onreading = async (event) => {
                 playBip();
                 let uid = event.serialNumber;
                 updateStatus(`KART OKUNDU: ${uid}`, "#d4edda", "#155724");
+                logMessage(`[NFC] Kart okundu: ${uid}. Veri hazırlanıyor...`);
                 
-                // --- SAAT DÜZELTMESİ (Frontend'den silindi, Backend oluşturacak) ---
-                let data = { token: AUTH_TOKEN, islem_tipi: currentMode, kart_uid: uid, enlem: verifiedGps.lat, boylam: verifiedGps.lng, senkron_durumu: navigator.onLine ? "Canlı İletim" : "Cihazdan Senkronize" };
+                // NFC verisinde belge fotoğrafı yok, o yüzden o kısımlar boş gidecek
+                let data = {
+                    token: AUTH_TOKEN,
+                    action: 'save_data',
+                    islem_tipi: currentMode,
+                    target_personel: uid + " (NFC Kart)", // Personel adı NFC UID'si
+                    enlem: verifiedGps.lat,
+                    boylam: verifiedGps.lng,
+                    senkron_durumu: navigator.onLine ? "Canlı İletim" : "Cihazdan Senkronize",
+                    // NFC'de fotoğraf yok, boş gönder
+                    image_base64: "", 
+                    image_type: "",
+                    
+                    // Gönderen kişi yine NFC kartı okutan terminal
+                    gönderen_personel: loggedInUser.ad,
+                    ip_adresi: "Canlı Senkron (Tetiklenmedi)",
+                    cihaz_bilgisi: navigator.userAgent
+                };
                 await processRecord(data);
             };
         } catch (error) { logMessage(`[NFC HATA] ${error}`); }
@@ -323,10 +419,15 @@
 
     async function processRecord(data) {
         if (navigator.onLine) { logMessage(`[AĞ] Gönderiliyor...`); if (await sendToGoogleSheets(data)) return; }
+        
+        // Offline ise kuyruğa ekle
         let queue = JSON.parse(localStorage.getItem('pdksQueue') || "[]");
+        // Offline kuyruğuna gönderirken IP'yi boş bırakacağız çünkü offline alınmadı
+        data.ip_adresi = "Cihazda Kayıt (Offline)";
+        
         queue.push(data);
         localStorage.setItem('pdksQueue', JSON.stringify(queue));
-        logMessage(`[ÇEVRİMDIŞI] Cihaza kaydedildi (${queue.length} bekleyen)`);
+        logMessage(`[ÇEVRİMDIŞI] Cihaza kaydedildi (${queue.length} bekleyen). İletim internet geldiğinde yapılacak.`);
         updateStatus(`İnternet Yok. Cihaza Kaydedildi!`, "#fff3cd", "#856404");
     }
 
@@ -342,7 +443,7 @@
             let result = JSON.parse(textData);
 
             if (result.status === "success") {
-                logMessage(`[BAŞARILI] Kayıt işlendi.`);
+                logMessage(`[BAŞARILI] Kayıt sunucuya işlendi.`);
                 updateStatus("Kayıt Tamamlandı!", "#d4edda", "#155724");
                 return true;
             } else {
@@ -350,7 +451,7 @@
                 return false;
             }
         } catch (error) {
-            logMessage(`[HATA] İletim başarısız.`);
+            logMessage(`[HATA] İletim başarısız. Cihaza kaydedildi.`);
             return false;
         }
     }
@@ -363,13 +464,15 @@
         let rem = [];
         
         for (let record of queue) {
+            // Offline kuyruktan senkronize ederken IP adresi "Cihazda Kayıt (Offline)" olarak kalır.
+            // Sunucuda IP tespit edilemez (fetch offline yapıldı).
             if (!(await sendToGoogleSheets(record))) {
                 rem.push(record); // Başarısızsa kuyruğa geri ekle
             }
         }
         
         localStorage.setItem('pdksQueue', JSON.stringify(rem));
-        logMessage(`[SENKRON] Bitti.`);
+        logMessage(`[SENKRON] İletim bitti. Kuyruk temizlendi.`);
     }
 
     function updateStatus(text, bg, color) {
