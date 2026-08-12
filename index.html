@@ -9,11 +9,9 @@
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
         h3 { color: #333; margin-top: 0; }
         
-        /* Ağ Durumu Göstergesi */
         #networkStatus { padding: 8px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 15px; background: #d4edda; color: #155724; }
         .offline { background: #f8d7da !important; color: #721c24 !important; }
 
-        /* Modül Butonları */
         .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .mode-btn { padding: 12px; font-size: 14px; font-weight: bold; border: 2px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; color: #555; transition: 0.3s; }
         .mode-btn.active { border-color: #007bff; background: #cce5ff; color: #004085; }
@@ -22,6 +20,10 @@
         .action-btn { width: 100%; padding: 15px; font-size: 16px; font-weight: bold; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; }
         .action-btn:disabled { background: #ccc; cursor: not-allowed; opacity: 0.6; }
         .btn-green { background: #28a745; }
+        .btn-orange { background: #fd7e14; display: none; }
+
+        .personnel-box { display: none; margin-top: 15px; text-align: left; }
+        .personnel-box select { width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #ccc; font-size: 14px; margin-bottom: 10px; }
 
         .log { text-align: left; background: #1e1e1e; color: #00ff00; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; height: 160px; overflow-y: auto; margin-top: 15px; }
     </style>
@@ -32,7 +34,6 @@
     <div id="networkStatus">📡 Çevrimiçi (Online) - Sistem Senkronize</div>
     <h3>PDKS Saha Terminali</h3>
     
-    <!-- İşlem Tipi Seçimi -->
     <div class="mode-grid">
         <button class="mode-btn" id="btn-GİRİŞ" onclick="setMode('GİRİŞ')">GİRİŞ</button>
         <button class="mode-btn" id="btn-ÇIKIŞ" onclick="setMode('ÇIKIŞ')">ÇIKIŞ</button>
@@ -42,56 +43,91 @@
     
     <div id="statusBox" class="status">Önce işlem tipi seçiniz.</div>
 
-    <!-- Adım 1: GPS -->
     <button class="action-btn" id="gpsBtn" onclick="getLiveLocation()" disabled>1. Konum Al ve Kilitle</button>
-
-    <!-- Adım 2: NFC -->
     <button class="action-btn btn-green" id="nfcBtn" onclick="startNfcScan()" disabled>2. NFC Kart Okut</button>
+
+    <div class="personnel-box" id="personnelBox">
+        <label for="personSelect" style="font-size: 12px; font-weight: bold; color: #333;">Personel Seçiniz:</label>
+        <select id="personSelect">
+            <option value="">-- Google Sheets'ten Liste Yükleniyor... --</option>
+        </select>
+        <button class="action-btn btn-orange" id="submitPersonBtn" onclick="submitPersonnelStatus()">Seçilen Durumu Kaydet</button>
+    </div>
 
     <div class="log" id="logBox">
         > Terminal başlatıldı.<br>
-        > Çevrimdışı senkronizasyon servisi aktif.<br>
+        > Personel listesi Google Sheets'ten çekiliyor...<br>
     </div>
 </div>
 
 <script>
-    // Google Apps Script API URL'si
-    const API_URL = "https://script.google.com/macros/s/AKfycbyK8mSUxnlxcOvY1YDUDKFijrI1y0bhV54COvaEWzI3Pig2EH4zSd4VFdPZcH1U_irE/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbykqVWY66uvJSushQhpuL4qBdMuOBDgi4WBElVTQfHJQJ94-QxcPZk5hqC8DYhBs6Ah/exec";
     
     let currentMode = null;
     let verifiedGps = { lat: null, lng: null };
 
-    // Ağ durumunu dinle
     window.addEventListener('online', updateNetworkStatus);
     window.addEventListener('offline', updateNetworkStatus);
+    window.addEventListener('load', loadPersonnelList);
+
+    async function loadPersonnelList() {
+        try {
+            let response = await fetch(API_URL);
+            let result = await response.json();
+            
+            if (result.status === "success") {
+                let select = document.getElementById('personSelect');
+                select.innerHTML = '<option value="">-- Personel Seçin --</option>';
+                
+                result.personeller.forEach(p => {
+                    let opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = p.ad;
+                    select.appendChild(opt);
+                });
+                logMessage("[SİSTEM] Personel listesi Google Sheets'ten yüklendi.");
+            } else {
+                throw new Error("Liste alınamadı.");
+            }
+        } catch (e) {
+            logMessage("[HATA] Personel listesi yüklenemedi.");
+        }
+    }
 
     function updateNetworkStatus() {
         const statusDiv = document.getElementById('networkStatus');
         if (navigator.onLine) {
             statusDiv.textContent = '📡 Çevrimiçi (Online) - Sistem Senkronize';
             statusDiv.classList.remove('offline');
-            syncOfflineQueue(); // İnternet geldiğinde kuyruktakileri gönder
+            syncOfflineQueue();
+            loadPersonnelList();
         } else {
             statusDiv.textContent = '⚠️ Çevrimdışı (Offline) - Veriler Cihaza Kaydedilecek';
             statusDiv.classList.add('offline');
         }
     }
 
-    // İşlem Tipi Seçimi (Giriş/Çıkış vs.)
     function setMode(mode) {
         currentMode = mode;
         document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById('btn-' + mode).classList.add('active');
         
+        if(mode === 'İZİNLİ' || mode === 'RAPORLU') {
+            document.getElementById('nfcBtn').style.display = 'none';
+            document.getElementById('personnelBox').style.display = 'block';
+        } else {
+            document.getElementById('nfcBtn').style.display = 'block';
+            document.getElementById('personnelBox').style.display = 'none';
+        }
+
         updateStatus(`${mode} seçildi. Konum kilitleniyor...`, "#cce5ff", "#004085");
         document.getElementById('gpsBtn').disabled = false;
         logMessage(`[SİSTEM] İşlem tipi ayarlandı: ${mode}`);
     }
 
-    // Konum Alma
     function getLiveLocation() {
         if (!currentMode) {
-            alert("Lütfen önce işlem tipi (GİRİŞ/ÇIKIŞ) seçiniz.");
+            alert("Lütfen önce işlem tipi seçiniz.");
             return;
         }
 
@@ -111,8 +147,13 @@
                 updateStatus(`Konum Kilitlendi (${verifiedGps.lat.toFixed(4)}, ${verifiedGps.lng.toFixed(4)})`, "#d4edda", "#155724");
                 logMessage(`[GPS OK] Koordinat yakalandı.`);
 
-                document.getElementById('nfcBtn').disabled = false;
-                logMessage("Sistem kart okumaya hazır.");
+                if(currentMode === 'İZİNLİ' || currentMode === 'RAPORLU') {
+                    document.getElementById('submitPersonBtn').style.display = 'block';
+                    logMessage("Personel seçimine hazır.");
+                } else {
+                    document.getElementById('nfcBtn').disabled = false;
+                    logMessage("Sistem kart okumaya hazır.");
+                }
             },
             (error) => {
                 let errDesc = error.code === 1 ? "Konum izni reddedildi." : "GPS sinyali alınamadı.";
@@ -123,7 +164,36 @@
         );
     }
 
-    // NFC Tarama ve Kayıt İşlemi
+    async function submitPersonnelStatus() {
+        let selectElem = document.getElementById('personSelect');
+        let selectedVal = selectElem.value;
+        let selectedText = selectElem.options[selectElem.selectedIndex].text;
+
+        if (!selectedVal) {
+            alert("Lütfen listeden bir personel seçin!");
+            return;
+        }
+
+        let now = new Date();
+        let recordData = {
+            tarih_saat: now.getFullYear() + "-" + 
+                        ("0" + (now.getMonth() + 1)).slice(-2) + "-" + 
+                        ("0" + now.getDate()).slice(-2) + " " + 
+                        ("0" + now.getHours()).slice(-2) + ":" + 
+                        ("0" + now.getMinutes()).slice(-2) + ":" + 
+                        ("0" + now.getSeconds()).slice(-2),
+            islem_tipi: currentMode,
+            kart_uid: selectedVal + " (" + selectedText + ")",
+            enlem: verifiedGps.lat,
+            boylam: verifiedGps.lng,
+            senkron_durumu: navigator.onLine ? "Canlı İletim" : "Cihazdan Senkronize"
+        };
+
+        updateStatus(`KAYDEDİLDİ: ${selectedText}`, "#d4edda", "#155724");
+        await processRecord(recordData);
+        selectElem.value = "";
+    }
+
     async function startNfcScan() {
         if (verifiedGps.lat === null) {
             alert("Önce konum almanız gerekiyor!");
@@ -142,7 +212,6 @@
                     
                     updateStatus(`KART OKUNDU: ${serialNumber}`, "#d4edda", "#155724");
                     
-                    // Veri Paketini Hazırla
                     let now = new Date();
                     let recordData = {
                         tarih_saat: now.getFullYear() + "-" + 
@@ -168,7 +237,6 @@
         }
     }
 
-    // Veriyi İşleme (Online ise Gönder, Offline ise Kaydet)
     async function processRecord(data) {
         if (navigator.onLine) {
             logMessage(`[AĞ] Sunucuya gönderiliyor: ${data.kart_uid}`);
@@ -181,14 +249,11 @@
         }
     }
 
-    // Fetch API ile Google Sheets'e İletim (CORS By-Pass yöntemiyle)
     async function sendToGoogleSheets(data) {
         try {
             let response = await fetch(API_URL, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8"
-                },
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(data)
             });
             
@@ -205,7 +270,6 @@
         }
     }
 
-    // Çevrimdışı Kuyruğa Kayıt
     function saveToOfflineQueue(data) {
         let queue = JSON.parse(localStorage.getItem('pdksQueue') || "[]");
         queue.push(data);
@@ -214,33 +278,23 @@
         updateStatus(`İnternet Yok. Cihaza Kaydedildi!`, "#fff3cd", "#856404");
     }
 
-    // Bekleyen Verileri Senkronize Etme (Handshake)
     async function syncOfflineQueue() {
         let queue = JSON.parse(localStorage.getItem('pdksQueue') || "[]");
         if (queue.length === 0) return;
 
         logMessage(`[SENKRONİZASYON] ${queue.length} adet bekleyen kayıt iletiliyor...`);
-        
         let remainingQueue = [];
         
         for (let i = 0; i < queue.length; i++) {
             let success = await sendToGoogleSheets(queue[i]);
             if (!success) {
-                // Eğer yine başarısız olursa kuyrukta tutmaya devam et
                 remainingQueue.push(queue[i]);
             }
         }
         
         localStorage.setItem('pdksQueue', JSON.stringify(remainingQueue));
-        
-        if (remainingQueue.length === 0) {
-            logMessage(`[SENKRONİZASYON TAMAM] Tüm veriler Google Sheets'e aktarıldı.`);
-        } else {
-            logMessage(`[UYARI] ${remainingQueue.length} kayıt iletilemedi, sonra tekrar denenecek.`);
-        }
     }
 
-    // Arayüz ve Ses Fonksiyonları
     function updateStatus(text, bg, color) {
         let box = document.getElementById('statusBox');
         box.innerText = text;
@@ -267,7 +321,6 @@
         } catch(e) {}
     }
 
-    // İlk açılışta ağ kontrolü
     updateNetworkStatus();
 </script>
 
