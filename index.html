@@ -2,130 +2,868 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#007bff">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PDKS Saha Terminali</title>
 <style>
-*{box-sizing:border-box}body{font-family:Arial,sans-serif;background:#f0f2f5;margin:0;padding:15px;text-align:center}.card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,.1);max-width:420px;margin:0 auto}h3{color:#333;margin-top:0}#networkStatus{padding:8px;border-radius:6px;font-size:12px;font-weight:bold;margin-bottom:15px;background:#d4edda;color:#155724}.offline{background:#f8d7da!important;color:#721c24!important}.login-box{background:#e9ecef;padding:15px;border-radius:8px;margin-bottom:15px;text-align:left}.login-box input{width:100%;padding:10px;margin:5px 0 10px;border:1px solid #ccc;border-radius:6px}.login-box label{font-size:11px;font-weight:bold;color:#495057}.user-info{display:none;background:#e9ecef;padding:10px;border-radius:7px;margin-bottom:12px;font-size:12px;text-align:left}.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px}.mode-btn{padding:12px;font-size:14px;font-weight:bold;border:2px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;color:#555}.mode-btn.active{border-color:#007bff;background:#cce5ff;color:#004085}.status{padding:12px;margin:15px 0;border-radius:8px;font-weight:bold;font-size:14px;background:#fff3cd;color:#856404}.action-btn{width:100%;padding:15px;font-size:16px;font-weight:bold;background:#007bff;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:10px}.action-btn:disabled{background:#ccc;cursor:not-allowed;opacity:.6}.btn-green{background:#28a745}.btn-red{background:#dc3545}.btn-orange{background:#fd7e14;display:none}.personnel-box{display:none;margin-top:15px;text-align:left}.personnel-box select{width:100%;padding:12px;border-radius:8px;border:2px solid #ccc;font-size:14px;margin-bottom:10px}.file-upload-box{margin-top:10px;padding:10px;background:#f8f9fa;border:1px dashed #6c757d;border-radius:8px;text-align:center;display:none}.file-upload-box input{font-size:12px;width:100%;margin-top:5px}#uploadStatus{font-size:11px;margin-top:5px;color:#555}.log{text-align:left;background:#1e1e1e;color:#00ff00;padding:10px;border-radius:6px;font-family:monospace;font-size:11px;height:150px;overflow-y:auto;margin-top:15px}#queueInfo{display:none;margin-top:10px;padding:8px;border-radius:6px;background:#fff3cd;color:#856404;font-size:11px;font-weight:bold}.site-box{display:none;background:#e9f7ef;border-radius:10px;padding:12px;margin-bottom:15px}.site-title{font-size:11px;font-weight:bold;color:#555}.site-count{font-size:34px;font-weight:bold;color:#28a745;line-height:1.1}.site-unit{font-size:11px;color:#555}.site-controls{display:flex;gap:6px;margin-top:8px}.site-controls input{flex:1;padding:8px;border:1px solid #bbb;border-radius:6px}.site-controls button{padding:8px 10px;border:0;border-radius:6px;background:#007bff;color:#fff;font-weight:bold}.site-meta{font-size:10px;color:#666;margin-top:5px}
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#f0f2f5;margin:0;padding:15px;text-align:center;color:#222}
+.card{background:#fff;padding:18px;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.12);max-width:520px;margin:0 auto}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+h3{margin:0;color:#333;font-size:20px}
+.lang{border:1px solid #ccc;border-radius:7px;padding:7px;background:#fff}
+#networkStatus{padding:8px;border-radius:6px;font-size:12px;font-weight:bold;margin-bottom:12px;background:#d4edda;color:#155724}
+.offline{background:#f8d7da!important;color:#721c24!important}
+.login-box{background:#e9ecef;padding:15px;border-radius:8px;margin-bottom:15px;text-align:left}
+.login-box input{width:100%;padding:10px;margin:5px 0 10px;border:1px solid #ccc;border-radius:6px}
+.login-box label{font-size:11px;font-weight:bold;color:#495057}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px}
+.mode-btn{padding:12px;font-size:14px;font-weight:bold;border:2px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;color:#555}
+.mode-btn.active{border-color:#007bff;background:#cce5ff;color:#004085}
+.status{padding:12px;margin:15px 0;border-radius:8px;font-weight:bold;font-size:14px;background:#fff3cd;color:#856404}
+.action-btn{width:100%;padding:14px;font-size:15px;font-weight:bold;background:#007bff;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:10px}
+.action-btn:disabled,.mode-btn:disabled{background:#ccc!important;color:#666!important;cursor:not-allowed;opacity:.7}
+.btn-green{background:#28a745}.btn-orange{background:#fd7e14}
+.btn-dark{background:#343a40}.btn-red{background:#dc3545}
+.personnel-box{display:none;margin-top:15px;text-align:left}
+.personnel-box select,.date-input{width:100%;padding:12px;border-radius:8px;border:2px solid #ccc;font-size:14px;margin-bottom:10px;background:#fff}
+.file-upload-box{margin-top:10px;padding:10px;background:#f8f9fa;border:1px dashed #6c757d;border-radius:8px;text-align:center;display:none}
+.file-upload-box input{font-size:12px;width:100%;margin-top:5px}
+#uploadStatus{font-size:11px;margin-top:5px;color:#555}
+#userPanel{font-size:14px;font-weight:bold;background:#e9ecef;padding:10px;border-radius:6px;color:#333;margin-bottom:10px}
+#formenPanel label{font-size:12px;font-weight:bold;color:#333}
+#onSiteBox{display:none;background:#e9f7ef;border:1px solid #b7e4c7;border-radius:10px;padding:12px;margin:10px 0 15px}
+#onSiteTitle{font-size:11px;font-weight:bold;color:#555}
+#onSiteCount{font-size:36px;font-weight:bold;color:#198754;line-height:1.1}
+#onSiteDate{font-size:12px;color:#555;margin-top:4px}
+#reportBox{display:none;background:#f8f9fa;border:1px solid #ddd;border-radius:10px;padding:12px;margin-top:15px;text-align:left}
+.report-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.user-info{font-size:12px;color:#555;margin:5px 0 12px}
+.log{text-align:left;background:#1e1e1e;color:#00ff00;padding:10px;border-radius:6px;font-family:monospace;font-size:11px;height:140px;overflow-y:auto;margin-top:15px}
+.hidden{display:none!important}
+
+/* PRINT */
+#printArea{display:none}
+@media print{
+  body{background:#fff;padding:0}
+  body>*{display:none!important}
+  #printArea{display:block!important}
+  #printArea{font-family:Arial,sans-serif;color:#111;padding:20px}
+  .print-header{text-align:center;border-bottom:2px solid #222;padding-bottom:10px;margin-bottom:14px}
+  .print-header h1{font-size:20px;margin:0 0 6px}
+  .print-meta{font-size:12px}
+  .print-summary{font-size:16px;font-weight:bold;margin:12px 0}
+  table.print-table{width:100%;border-collapse:collapse;font-size:11px}
+  .print-table th,.print-table td{border:1px solid #777;padding:6px;text-align:left}
+  .print-table th{background:#eee}
+  .row-sahada{background:#9cff9c!important}
+  .row-cikis{background:#fff176!important}
+  .row-izinli{background:#9ec5fe!important}
+  .row-raporlu{background:#ffb36b!important}
+  .legend{margin-top:12px;font-size:11px}
+  .legend span{display:inline-block;padding:4px 8px;margin-right:5px;border:1px solid #888}
+  .legend-green{background:#9cff9c}.legend-yellow{background:#fff176}
+  .legend-blue{background:#9ec5fe}.legend-orange{background:#ffb36b}
+}
 </style>
 </head>
 <body>
+
 <div class="card">
-<div id="networkStatus">📡 Çevrimiçi</div>
-<h3>PDKS Saha Terminali</h3>
+  <div class="topbar">
+    <h3 id="title">PDKS Saha Terminali</h3>
+    <select id="languageSelect" class="lang" onchange="setLanguage(this.value)">
+      <option value="tr">🇹🇷 Türkçe</option>
+      <option value="ru">🇷🇺 Русский</option>
+      <option value="en">🇬🇧 English</option>
+    </select>
+  </div>
 
-<div id="userInfo" class="user-info">
-<strong>Kullanıcı:</strong> <span id="loggedUserName"></span><br>
-<strong>Yetki:</strong> <span id="loggedUserRole"></span>
-<button class="action-btn btn-red" style="padding:8px;font-size:12px" onclick="logoutUser()">Oturumu Kapat</button>
+  <div id="networkStatus">📡 Çevrimiçi</div>
+
+  <div class="login-box" id="loginBox">
+    <label id="usernameLabel">Kullanıcı Adı:</label>
+    <input type="text" id="usernameInput" autocomplete="username">
+    <label id="passwordLabel">Şifre:</label>
+    <input type="password" id="passwordInput" autocomplete="current-password">
+    <button class="action-btn" id="loginBtn" onclick="doUserLogin()">Giriş Yap</button>
+  </div>
+
+  <div id="userInfo" class="user-info hidden"></div>
+
+  <div id="onSiteBox">
+    <div id="onSiteTitle">SAHA MEVCUDU</div>
+    <div id="onSiteCount">0</div>
+    <div id="onSiteUnit">kişi</div>
+    <div id="onSiteDate"></div>
+  </div>
+
+  <div id="modeGrid" class="mode-grid">
+    <button class="mode-btn" id="btn-GİRİŞ" onclick="setMode('GİRİŞ')" disabled>GİRİŞ (NFC)</button>
+    <button class="mode-btn" id="btn-ÇIKIŞ" onclick="setMode('ÇIKIŞ')" disabled>ÇIKIŞ (NFC)</button>
+    <button class="mode-btn" id="btn-İZİNLİ" onclick="setMode('İZİNLİ')" disabled>İZİNLİ</button>
+    <button class="mode-btn" id="btn-RAPORLU" onclick="setMode('RAPORLU')" disabled>RAPORLU</button>
+  </div>
+
+  <div id="statusBox" class="status">Lütfen önce giriş yapın.</div>
+
+  <button class="action-btn" id="gpsBtn" onclick="getLiveLocation()" disabled>1. Konum Al ve Kilitle</button>
+  <button class="action-btn btn-green" id="nfcBtn" onclick="startNfcScan()" disabled>2. NFC Kart Okut</button>
+
+  <div class="personnel-box" id="personnelBox">
+    <div id="formenPanel" style="display:none;margin-bottom:10px">
+      <label id="personSelectLabel" for="personSelect">Data gireceğiniz personeli seçiniz:</label>
+      <select id="personSelect"></select>
+    </div>
+
+    <div id="userPanel" style="display:none">
+      <span id="userPanelText">Veriler sizin adınıza girilecektir.</span>
+    </div>
+
+    <div class="file-upload-box" id="fileUploadBox">
+      <label id="photoLabel" style="font-size:11px;color:#d9534f;font-weight:bold">⚠️ Belge Fotoğrafı Çekin:</label>
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleFileSelect(this)">
+      <div id="uploadStatus">Hazır.</div>
+    </div>
+
+    <button class="action-btn btn-orange" id="submitPersonBtn" onclick="submitPersonnelStatus()" disabled>
+      Verileri ve Durumu Kaydet
+    </button>
+  </div>
+
+  <div id="reportBox">
+    <strong id="reportTitle">Formen Raporu</strong>
+    <input id="reportDate" class="date-input" type="date" onchange="loadSiteCount()">
+    <div class="report-actions">
+      <button class="action-btn btn-dark" onclick="loadReport()">📋 <span id="previewText">Raporu Göster</span></button>
+      <button class="action-btn btn-green" onclick="printReport()">🖨 <span id="printText">Yazdır</span></button>
+    </div>
+  </div>
+
+  <div class="log" id="logBox">&gt; Terminal başlatıldı.<br></div>
 </div>
 
-<div class="login-box" id="loginBox">
-<label>Kullanıcı Adı:</label>
-<input type="text" id="usernameInput" autocomplete="username" placeholder="Kullanıcı adı">
-<label>Şifre:</label>
-<input type="password" id="passwordInput" autocomplete="current-password" placeholder="Şifre">
-<button class="action-btn" id="loginButton" style="padding:10px;font-size:13px" onclick="doUserLogin()">Giriş Yap</button>
-</div>
-
-<!-- Sadece Formen -->
-<div id="siteBox" class="site-box">
-<div class="site-title">SAHA MEVCUDU</div>
-<div id="siteCount" class="site-count">-</div>
-<div class="site-unit">KİŞİ</div>
-<div class="site-controls">
-<input type="date" id="siteDate">
-<button onclick="loadSiteCount()">Görüntüle</button>
-</div>
-<div id="siteMeta" class="site-meta">Bugün için anlık mevcut</div>
-</div>
-
-<div class="mode-grid">
-<button class="mode-btn" id="btn-GİRİŞ" onclick="setMode('GİRİŞ')" disabled>GİRİŞ (NFC)</button>
-<button class="mode-btn" id="btn-ÇIKIŞ" onclick="setMode('ÇIKIŞ')" disabled>ÇIKIŞ (NFC)</button>
-<button class="mode-btn" id="btn-İZİNLİ" onclick="setMode('İZİNLİ')" disabled>İZİNLİ</button>
-<button class="mode-btn" id="btn-RAPORLU" onclick="setMode('RAPORLU')" disabled>RAPORLU</button>
-</div>
-
-<div id="statusBox" class="status">Lütfen önce giriş yapın.</div>
-<button class="action-btn" id="gpsBtn" onclick="getLiveLocation()" disabled>1. Konum Al ve Kilitle</button>
-<button class="action-btn btn-green" id="nfcBtn" onclick="startNfcScan()" disabled>2. NFC Kart Okut</button>
-
-<div class="personnel-box" id="personnelBox">
-<div id="formenPanel" style="display:none;margin-bottom:10px">
-<label for="personSelect" style="font-size:12px;font-weight:bold;color:#333">İşlem Yapılacak Personel:</label>
-<select id="personSelect"><option value="">-- Personel Seçin --</option></select>
-</div>
-<div id="userPanel" style="display:none;font-size:14px;font-weight:bold;background:#e9ecef;padding:10px;border-radius:6px;color:#333;margin-bottom:10px">Bu işlem sizin adınıza yapılacaktır.</div>
-<div class="file-upload-box" id="fileUploadBox">
-<label style="font-size:11px;color:#d9534f;font-weight:bold">⚠️ Belge Fotoğrafı Çekin:</label>
-<input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleFileSelect(this)">
-<div id="uploadStatus">Hazır.</div>
-</div>
-<button class="action-btn btn-orange" id="submitPersonBtn" onclick="submitPersonnelStatus()" disabled>Verileri ve Durumu Kaydet</button>
-</div>
-
-<div id="queueInfo">⏳ Bekleyen offline kayıt: <span id="queueCount">0</span></div>
-<div class="log" id="logBox">&gt; Terminal başlatıldı. Lütfen giriş yapın.<br></div>
-</div>
+<div id="printArea"></div>
 
 <script>
-const API_URL="https://script.google.com/macros/s/AKfycby7xgRdGuzfWsPXTS3_9Zb3DUUqD7Dave_lyXVYeIVN0NXpHf_ufuqYuUnXRioMmcLd/exec";
-let currentMode=null,verifiedGps={lat:null,lng:null},loggedInUser=null,sessionToken=null,globalPersonnelList=[],compressedBase64="",nfcReader=null,nfcReadingActive=false,submittingRecord=false,lastServerError=null;
+/* =========================
+   CONFIG
+   ========================= */
+const API_URL = "BURAYA_YENI_GAS_WEB_APP_URL_NI_YAZ";
+const STORAGE_LANG_KEY = "pdks_language_v3";
+const QUEUE_KEY = "pdksQueue_v3";
 
-window.addEventListener('load',initializeApp);window.addEventListener('online',updateNetworkStatus);window.addEventListener('offline',updateNetworkStatus);document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncOfflineQueue();if(isFormen())loadSiteCount()}});setInterval(()=>{if(navigator.onLine&&sessionToken){syncOfflineQueue();if(isFormen()&&isTodaySelected())loadSiteCount()}},60000);
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(document.activeElement?.id==='usernameInput'||document.activeElement?.id==='passwordInput'))doUserLogin()});
+let sessionToken = null;
+let loggedInUser = null;
+let currentMode = null;
+let verifiedGps = {lat:null,lng:null};
+let compressedBase64 = "";
+let globalPersonnelList = [];
+let nfcReader = null;
+let nfcScanStarted = false;
+let siteCountTimer = null;
+let currentReport = null;
 
-function initializeApp(){updateNetworkStatus();setTodayInput();restoreSession();updateQueueInfo();logMessage('[SİSTEM] Terminal hazır.');}
-function isFormen(){return !!loggedInUser&&String(loggedInUser.unvan||'').trim().toLowerCase()==='formen';}
-function setTodayInput(){const d=new Date();const s=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');const input=document.getElementById('siteDate');input.value=s;input.max=s;}
-function isTodaySelected(){return document.getElementById('siteDate').value===document.getElementById('siteDate').max;}
+const T = {
+  tr:{
+    title:"PDKS Saha Terminali", online:"📡 Çevrimiçi - Güvenli Senkronizasyon", offline:"⚠️ Çevrimdışı - Veriler cihazda tutulacak",
+    username:"Kullanıcı Adı:", password:"Şifre:", login:"Giriş Yap", logout:"Çıkış Yap",
+    loginFirst:"Lütfen önce giriş yapın.", loginSuccess:"Giriş başarılı. Mod seçin.",
+    location:"1. Konum Al ve Kilitle", nfc:"2. NFC Kart Okut", leave:"İZİNLİ", sick:"RAPORLU",
+    personSelect:"Data gireceğiniz personeli seçiniz:", userPanel:"Veriler sizin adınıza girilecektir.",
+    photo:"⚠️ Belge Fotoğrafı Çekin:", ready:"Hazır.", save:"Verileri ve Durumu Kaydet",
+    site:"SAHA MEVCUDU", person:"kişi", report:"Formen Raporu", show:"Raporu Göster", print:"Yazdır",
+    selected:"Seçilen tarih:", gps:"GPS aranıyor...", gpsOk:"Konum kilitlendi.", nfcActive:"NFC aktif! Kart okutun...",
+    nfcUnsupported:"Bu cihaz/tarayıcı Web NFC desteklemiyor.", choosePerson:"Lütfen personel seçin.",
+    photoNeeded:"Konum alındı. Belge fotoğrafı çekin.", sent:"Kayıt başarılı.",
+    offlineSaved:"İnternet yok. Kayıt cihaza alındı.", sessionExpired:"Oturum süresi doldu. Lütfen tekrar giriş yapın.",
+    noData:"Bu tarih için kayıt bulunamadı.", printTitle:"PDKS SAHA PERSONEL RAPORU",
+    printTime:"Rapor oluşturma zamanı", legendGreen:"Sahada", legendYellow:"Çıkış", legendBlue:"İzinli", legendOrange:"Raporlu",
+    invalidDate:"Geçersiz tarih.", today:"Bugün", unknown:"Bilinmiyor"
+  },
+  ru:{
+    title:"Терминал ПДКС", online:"📡 Онлайн - Безопасная синхронизация", offline:"⚠️ Офлайн - Данные сохранены на устройстве",
+    username:"Имя пользователя:", password:"Пароль:", login:"Войти", logout:"Выйти",
+    loginFirst:"Сначала выполните вход.", loginSuccess:"Вход выполнен. Выберите режим.",
+    location:"1. Получить и зафиксировать геопозицию", nfc:"2. Сканировать NFC-карту", leave:"ОТПУСК", sick:"БОЛЬНИЧНЫЙ",
+    personSelect:"Выберите сотрудника:", userPanel:"Данные будут внесены от вашего имени.",
+    photo:"⚠️ Сфотографируйте документ:", ready:"Готово.", save:"Сохранить данные",
+    site:"НА ПЛОЩАДКЕ", person:"чел.", report:"Отчет для мастера", show:"Показать отчет", print:"Печать",
+    selected:"Выбранная дата:", gps:"Поиск GPS...", gpsOk:"Геопозиция зафиксирована.", nfcActive:"NFC активен! Приложите карту...",
+    nfcUnsupported:"Этот браузер/устройство не поддерживает Web NFC.", choosePerson:"Выберите сотрудника.",
+    photoNeeded:"Геопозиция получена. Сфотографируйте документ.", sent:"Запись сохранена.",
+    offlineSaved:"Нет интернета. Запись сохранена на устройстве.", sessionExpired:"Сессия истекла. Войдите снова.",
+    noData:"За эту дату записей нет.", printTitle:"ОТЧЕТ О СОТРУДНИКАХ НА ПЛОЩАДКЕ",
+    printTime:"Время формирования", legendGreen:"На площадке", legendYellow:"Выход", legendBlue:"Отпуск", legendOrange:"Больничный",
+    invalidDate:"Неверная дата.", today:"Сегодня", unknown:"Неизвестно"
+  },
+  en:{
+    title:"PDKS Field Terminal", online:"📡 Online - Secure synchronization", offline:"⚠️ Offline - Data stored on device",
+    username:"Username:", password:"Password:", login:"Login", logout:"Logout",
+    loginFirst:"Please log in first.", loginSuccess:"Login successful. Select a mode.",
+    location:"1. Get and Lock Location", nfc:"2. Scan NFC Card", leave:"LEAVE", sick:"SICK LEAVE",
+    personSelect:"Select the employee:", userPanel:"Data will be entered on your behalf.",
+    photo:"⚠️ Take a document photo:", ready:"Ready.", save:"Save Data",
+    site:"ON SITE", person:"people", report:"Supervisor Report", show:"Show Report", print:"Print",
+    selected:"Selected date:", gps:"Searching GPS...", gpsOk:"Location locked.", nfcActive:"NFC active! Scan a card...",
+    nfcUnsupported:"Web NFC is not supported by this browser/device.", choosePerson:"Please select an employee.",
+    photoNeeded:"Location received. Take a document photo.", sent:"Record saved.",
+    offlineSaved:"No internet. Record saved on the device.", sessionExpired:"Session expired. Please log in again.",
+    noData:"No records for this date.", printTitle:"PDKS FIELD PERSONNEL REPORT",
+    printTime:"Report generated", legendGreen:"On site", legendYellow:"Checked out", legendBlue:"Leave", legendOrange:"Sick leave",
+    invalidDate:"Invalid date.", today:"Today", unknown:"Unknown"
+  }
+};
 
-async function restoreSession(){try{const token=sessionStorage.getItem('pdks_session');const user=sessionStorage.getItem('pdks_user');if(!token||!user)return;sessionToken=token;loggedInUser=JSON.parse(user);const ok=await checkSession();if(!ok){clearSession();return}showLoggedInUI();if(isFormen()){await loadPersonnelListForFormen();await loadSiteCount()}}catch(e){clearSession()}}
-async function checkSession(){if(!sessionToken)return false;try{const r=await apiPost({action:'check_session',session:sessionToken});if(r.status!=='success')return false;loggedInUser=r.user;sessionStorage.setItem('pdks_user',JSON.stringify(loggedInUser));return true}catch(e){return !navigator.onLine}}
+function tr(key){
+  const lang = localStorage.getItem(STORAGE_LANG_KEY) || "tr";
+  return (T[lang] && T[lang][key]) || T.tr[key] || key;
+}
 
-async function doUserLogin(){const username=document.getElementById('usernameInput').value.trim();const password=document.getElementById('passwordInput').value;const btn=document.getElementById('loginButton');if(!username||!password){alert('Kullanıcı adı ve şifre girin.');return}btn.disabled=true;updateStatus('Giriş yapılıyor...','#fff3cd','#856404');try{const result=await apiPost({action:'login',username,password});if(result.status!=='success')throw new Error(result.message||'Giriş başarısız.');sessionToken=result.session;loggedInUser=result.user;sessionStorage.setItem('pdks_session',sessionToken);sessionStorage.setItem('pdks_user',JSON.stringify(loggedInUser));document.getElementById('passwordInput').value='';showLoggedInUI();logMessage('[BAŞARILI] Hoş geldiniz: '+loggedInUser.ad+' ('+loggedInUser.unvan+')');updateStatus('Giriş başarılı. Mod seçin.','#d4edda','#155724');if(isFormen()){await loadPersonnelListForFormen();await loadSiteCount()}}catch(e){logMessage('[LOGIN HATA] '+e.message);updateStatus('Giriş başarısız.','#f8d7da','#721c24');alert(e.message||'Giriş başarısız.')}finally{if(!loggedInUser)btn.disabled=false}}
-function showLoggedInUI(){document.getElementById('loginBox').style.display='none';document.getElementById('userInfo').style.display='block';document.getElementById('loggedUserName').textContent=loggedInUser.ad;document.getElementById('loggedUserRole').textContent=loggedInUser.unvan;document.querySelectorAll('.mode-grid button').forEach(b=>b.disabled=false);if(isFormen())document.getElementById('siteBox').style.display='block';}
-async function logoutUser(){try{if(sessionToken)await apiPost({action:'logout',session:sessionToken})}catch(e){}clearSession();}
-function clearSession(){sessionToken=null;loggedInUser=null;globalPersonnelList=[];sessionStorage.removeItem('pdks_session');sessionStorage.removeItem('pdks_user');document.getElementById('loginBox').style.display='block';document.getElementById('userInfo').style.display='none';document.getElementById('siteBox').style.display='none';resetTerminal();logMessage('[SESSION] Oturum kapatıldı.');}
+function setLanguage(lang){
+  if(!T[lang]) lang="tr";
+  localStorage.setItem(STORAGE_LANG_KEY,lang);
+  document.getElementById("languageSelect").value=lang;
+  applyLanguage();
+}
 
-async function loadPersonnelListForFormen(){if(!isFormen()||!sessionToken)return;try{const r=await apiPost({action:'get_personnel',session:sessionToken});if(r.status!=='success')throw new Error(r.message);globalPersonnelList=r.personeller||[];const select=document.getElementById('personSelect');select.innerHTML='<option value="">-- Personel Seçin --</option>';globalPersonnelList.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.ad+' ('+p.unvan+')';select.appendChild(o)});logMessage('[SİSTEM] '+globalPersonnelList.length+' personel yüklendi.')}catch(e){logMessage('[PERSONEL HATA] '+e.message)}}
+function applyLanguage(){
+  const lang=localStorage.getItem(STORAGE_LANG_KEY)||"tr";
+  document.documentElement.lang=lang;
+  document.getElementById("title").textContent=tr("title");
+  document.getElementById("usernameLabel").textContent=tr("username");
+  document.getElementById("passwordLabel").textContent=tr("password");
+  document.getElementById("loginBtn").textContent=tr("login");
+  document.getElementById("gpsBtn").textContent=tr("location");
+  document.getElementById("nfcBtn").textContent=tr("nfc");
+  document.getElementById("btn-İZİNLİ").textContent=tr("leave");
+  document.getElementById("btn-RAPORLU").textContent=tr("sick");
+  document.getElementById("personSelectLabel").textContent=tr("personSelect");
+  document.getElementById("userPanelText").textContent=tr("userPanel");
+  document.getElementById("photoLabel").textContent=tr("photo");
+  document.getElementById("uploadStatus").textContent=tr("ready");
+  document.getElementById("submitPersonBtn").textContent=tr("save");
+  document.getElementById("onSiteTitle").textContent=tr("site");
+  document.getElementById("onSiteUnit").textContent=tr("person");
+  document.getElementById("reportTitle").textContent=tr("report");
+  document.getElementById("previewText").textContent=tr("show");
+  document.getElementById("printText").textContent=tr("print");
+  document.getElementById("networkStatus").textContent=navigator.onLine?tr("online"):tr("offline");
+  if(!loggedInUser) document.getElementById("statusBox").textContent=tr("loginFirst");
+}
 
-async function loadSiteCount(){if(!isFormen()||!sessionToken)return;const date=document.getElementById('siteDate').value;if(!date)return;try{const r=await apiPost({action:'get_site_count',session:sessionToken,date});if(r.status!=='success'){if(String(r.message||'').toLowerCase().includes('oturum')){clearSession();return}throw new Error(r.message)}document.getElementById('siteCount').textContent=r.count;document.getElementById('siteMeta').textContent=isTodaySelected()?'Bugün • anlık mevcut • '+r.checkedAt:'Seçilen günün 23:59:59 mevcut değeri • '+date;document.getElementById('siteBox').style.display='block'}catch(e){logMessage('[SAHA SAYISI] '+e.message)}}
+window.addEventListener("online",updateNetworkStatus);
+window.addEventListener("offline",updateNetworkStatus);
+window.addEventListener("load",initializeApp);
 
-document.getElementById('siteDate').addEventListener('change',()=>{if(isFormen())loadSiteCount()});
+function initializeApp(){
+  const lang=localStorage.getItem(STORAGE_LANG_KEY)||"tr";
+  document.getElementById("languageSelect").value=lang;
+  applyLanguage();
+  setToday();
+  updateNetworkStatus();
+  logMessage("[SYSTEM] Terminal ready.");
+}
 
-function setMode(mode){if(!loggedInUser){alert('Lütfen önce giriş yapın.');return}stopNfcScan();currentMode=mode;document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));document.getElementById('btn-'+mode).classList.add('active');compressedBase64='';verifiedGps={lat:null,lng:null};document.getElementById('cameraInput').value='';document.getElementById('uploadStatus').textContent='Hazır.';document.getElementById('submitPersonBtn').style.display='none';document.getElementById('submitPersonBtn').disabled=true;document.getElementById('gpsBtn').disabled=false;document.getElementById('nfcBtn').disabled=true;if(mode==='GİRİŞ'||mode==='ÇIKIŞ'){document.getElementById('nfcBtn').style.display='block';document.getElementById('personnelBox').style.display='none';updateStatus(mode+' seçildi. Önce konum alın.','#cce5ff','#004085')}else{document.getElementById('nfcBtn').style.display='none';document.getElementById('personnelBox').style.display='block';document.getElementById('fileUploadBox').style.display='block';if(isFormen()){document.getElementById('formenPanel').style.display='block';document.getElementById('userPanel').style.display='none'}else{document.getElementById('formenPanel').style.display='none';document.getElementById('userPanel').style.display='block'}updateStatus(mode+' seçildi. Önce konum alın.','#cce5ff','#004085')}}
+function setToday(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const day=String(d.getDate()).padStart(2,"0");
+  document.getElementById("reportDate").value=`${y}-${m}-${day}`;
+}
 
-function getLiveLocation(){if(!currentMode){alert('Önce işlem tipi seçin.');return}if(!navigator.geolocation){alert('Tarayıcı GPS desteklemiyor.');return}document.getElementById('gpsBtn').disabled=true;updateStatus('GPS aranıyor...','#fff3cd','#856404');navigator.geolocation.getCurrentPosition(pos=>{verifiedGps.lat=pos.coords.latitude;verifiedGps.lng=pos.coords.longitude;logMessage('[GPS OK] '+verifiedGps.lat.toFixed(6)+', '+verifiedGps.lng.toFixed(6)+' ±'+Math.round(pos.coords.accuracy)+'m');if(currentMode==='GİRİŞ'||currentMode==='ÇIKIŞ'){document.getElementById('nfcBtn').disabled=false;updateStatus('Konum kilitlendi. NFC kart okutun.','#cce5ff','#004085')}else updateStatus('Konum alındı. Belge fotoğrafı çekin.','#d4edda','#155724')},err=>{updateStatus('GPS alınamadı: '+err.message,'#f8d7da','#721c24');document.getElementById('gpsBtn').disabled=false},{enableHighAccuracy:true,timeout:10000,maximumAge:0})}
+async function doUserLogin(){
+  const uName=document.getElementById("usernameInput").value.trim();
+  const uPass=document.getElementById("passwordInput").value;
 
-function handleFileSelect(input){const file=input.files[0];if(!file)return;if(file.size>15*1024*1024){alert('Fotoğraf 15 MB’dan büyük olamaz.');input.value='';return}document.getElementById('uploadStatus').textContent='🔄 Sıkıştırılıyor...';document.getElementById('submitPersonBtn').style.display='none';document.getElementById('submitPersonBtn').disabled=true;const reader=new FileReader();reader.onload=e=>compressImage(e.target.result,1200,.65);reader.readAsDataURL(file)}
-function compressImage(base64,maxWidth,quality){const img=new Image();img.onload=()=>{let w=img.width,h=img.height;if(w>maxWidth){h=Math.round(h*maxWidth/w);w=maxWidth}const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);compressedBase64=canvas.toDataURL('image/jpeg',quality);const kb=(compressedBase64.length*.75/1024).toFixed(1);document.getElementById('uploadStatus').textContent='✅ Hazır ('+kb+' KB)';if(verifiedGps.lat!==null){document.getElementById('submitPersonBtn').style.display='block';document.getElementById('submitPersonBtn').disabled=false}logMessage('[RESİM] '+kb+' KB')};img.onerror=()=>document.getElementById('uploadStatus').textContent='❌ Fotoğraf işlenemedi.';img.src=base64}
+  if(!uName || !uPass){
+    alert(`${tr("username")} ${tr("password")}`);
+    return;
+  }
 
-async function submitPersonnelStatus(){if(submittingRecord)return;if(!sessionToken||!loggedInUser){alert('Oturum bulunamadı.');return}if(verifiedGps.lat===null||verifiedGps.lng===null){alert('Önce konum alın.');return}if(!compressedBase64){alert('Belge fotoğrafı gerekli.');return}let target=isFormen()?document.getElementById('personSelect').value:loggedInUser.id;if(!target){alert('Lütfen personel seçin.');return}submittingRecord=true;lockTerminal();const data={action:'save_data',session:sessionToken,islem_tipi:currentMode,target_personel:target,konum:verifiedGps.lat+', '+verifiedGps.lng,senkron_durumu:navigator.onLine?'Canlı İletim':'Cihazdan Senkronize',image_base64:compressedBase64,image_type:'image/jpeg',ip_adresi:await getPublicIP(),cihaz_bilgisi:navigator.userAgent,client_event_time:new Date().toISOString()};const ok=await processRecord(data);if(ok)resetAfterSuccess();else unlockTerminal();submittingRecord=false}
+  const btn=document.getElementById("loginBtn");
+  btn.disabled=true;
+  updateStatus("...", "#fff3cd", "#856404");
 
-async function startNfcScan(){if(!sessionToken||!loggedInUser){alert('Önce giriş yapın.');return}if(!('NDEFReader' in window)){alert('Web NFC bu cihazda desteklenmiyor.');return}if(verifiedGps.lat===null){alert('Önce konum alın.');return}if(nfcReadingActive)return;try{nfcReader=new NDEFReader();await nfcReader.scan();nfcReadingActive=true;updateStatus('NFC aktif! Kart okutun...','#cce5ff','#004085');logMessage('[NFC] Aktif.');nfcReader.onreading=async e=>handleNfcReading(e);nfcReader.onreadingerror=()=>logMessage('[NFC] Kart okunamadı.')}catch(e){nfcReadingActive=false;logMessage('[NFC HATA] '+e.message);alert('NFC başlatılamadı: '+e.message)}}
-async function handleNfcReading(event){if(!sessionToken){stopNfcScan();return}const uid=String(event.serialNumber||'').trim();if(!uid)return;playBip();logMessage('[NFC] UID okundu.');const data={action:'save_data',session:sessionToken,islem_tipi:currentMode,target_personel:uid,konum:verifiedGps.lat+', '+verifiedGps.lng,senkron_durumu:navigator.onLine?'Canlı İletim':'Cihazdan Senkronize',image_base64:'',image_type:'',ip_adresi:await getPublicIP(),cihaz_bilgisi:navigator.userAgent,client_event_time:new Date().toISOString()};const ok=await processRecord(data);if(ok)updateStatus('Kayıt işlendi. Sıradaki kartı okutun.','#cce5ff','#004085')}
-function stopNfcScan(){nfcReadingActive=false;nfcReader=null;document.getElementById('nfcBtn').disabled=true}
+  try{
+    const result=await apiPost({
+      action:"login",
+      username:uName,
+      password:uPass
+    },false);
 
-async function processRecord(data){if(navigator.onLine){const ok=await sendToServer(data);if(ok)return true;if(lastServerError==='SESSION_INVALID'){clearSession();alert('Oturumunuzun süresi dolmuş. Tekrar giriş yapın.');return false}if(lastServerError!=='NETWORK_ERROR'){return false}}return addToOfflineQueue(data)}
-async function sendToServer(data){lastServerError=null;try{const r=await apiPost(data);if(r.status==='success'){if(r.duplicate)logMessage('[SUNUCU] Çift kayıt sessizce engellendi.');else logMessage('[BAŞARILI] Kayıt işlendi.');return true}const msg=String(r.message||'');lastServerError=msg.toLowerCase().includes('oturum')||msg.toLowerCase().includes('session')?'SESSION_INVALID':'SERVER_ERROR';logMessage('[REDDEDİLDİ] '+msg);return false}catch(e){lastServerError='NETWORK_ERROR';logMessage('[AĞ] Sunucuya ulaşılamadı.');return false}}
+    if(result.status!=="success") throw new Error(result.message||"Login failed");
 
-function addToOfflineQueue(data){try{const q=JSON.parse(localStorage.getItem('pdksQueue')||'[]');if(q.length>=20){alert('Offline kayıt kuyruğu dolu (20). Önce internet bağlantısını sağlayın.');return false}const copy=JSON.parse(JSON.stringify(data));delete copy.session;copy.client_record_id=(crypto.randomUUID?crypto.randomUUID():Date.now()+'_'+Math.random());copy.offline_created_at=new Date().toISOString();copy.ip_adresi='Cihazda Kayıt (Offline)';q.push(copy);localStorage.setItem('pdksQueue',JSON.stringify(q));updateQueueInfo();updateStatus('İnternet yok. Kayıt cihazda bekletiliyor.','#fff3cd','#856404');logMessage('[OFFLINE] Kayıt kuyruğa eklendi.');return true}catch(e){logMessage('[OFFLINE HATA] '+e.message);alert('Kayıt cihazda saklanamadı.');return false}}
-let syncing=false;async function syncOfflineQueue(){if(syncing||!navigator.onLine||!sessionToken)return;let q;try{q=JSON.parse(localStorage.getItem('pdksQueue')||'[]')}catch(e){return}if(!q.length){updateQueueInfo();return}syncing=true;const remaining=[];for(const record of q){if(!navigator.onLine){remaining.push(record);break}record.session=sessionToken;const ok=await sendToServer(record);delete record.session;if(!ok){remaining.push(record);if(lastServerError==='SESSION_INVALID')break}}localStorage.setItem('pdksQueue',JSON.stringify(remaining));syncing=false;updateQueueInfo();if(remaining.length!==q.length)logMessage('[SENKRON] Kalan: '+remaining.length)}
-function updateQueueInfo(){const q=JSON.parse(localStorage.getItem('pdksQueue')||'[]');const box=document.getElementById('queueInfo');document.getElementById('queueCount').textContent=q.length;box.style.display=q.length?'block':'none'}
+    sessionToken=result.session;
+    loggedInUser=result.user;
 
-async function getPublicIP(){try{const r=await fetch('https://api.ipify.org?format=json',{cache:'no-store'});const j=await r.json();return String(j.ip||'Bilinmeyen IP')}catch(e){return 'Bilinmeyen IP'}}
-async function apiPost(payload){const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});const text=await r.text();try{return JSON.parse(text)}catch(e){throw new Error('API yanıtı JSON değil. GAS deployment kontrol edilmeli.')}}
+    document.getElementById("loginBox").style.background="#d4edda";
+    document.getElementById("userInfo").classList.remove("hidden");
+    document.getElementById("userInfo").textContent=
+      `${loggedInUser.ad} (${loggedInUser.unvan})`;
 
-function lockTerminal(){document.getElementById('submitPersonBtn').disabled=true;document.querySelectorAll('.mode-grid button').forEach(b=>b.disabled=true);document.getElementById('gpsBtn').disabled=true;document.getElementById('nfcBtn').disabled=true}
-function unlockTerminal(){submittingRecord=false;document.querySelectorAll('.mode-grid button').forEach(b=>b.disabled=false);document.getElementById('gpsBtn').disabled=true;document.getElementById('nfcBtn').disabled=true}
-function resetAfterSuccess(){stopNfcScan();currentMode=null;verifiedGps={lat:null,lng:null};compressedBase64='';document.getElementById('cameraInput').value='';document.getElementById('uploadStatus').textContent='Hazır.';document.getElementById('submitPersonBtn').style.display='none';document.getElementById('submitPersonBtn').disabled=true;document.getElementById('personnelBox').style.display='none';document.querySelectorAll('.mode-btn').forEach(b=>{b.classList.remove('active');b.disabled=false});document.getElementById('gpsBtn').disabled=true;document.getElementById('nfcBtn').disabled=true;updateStatus('Kayıt tamamlandı. Yeni işlem seçin.','#d4edda','#155724')}
-function resetTerminal(){stopNfcScan();currentMode=null;verifiedGps={lat:null,lng:null};compressedBase64='';document.querySelectorAll('.mode-btn').forEach(b=>{b.classList.remove('active');b.disabled=true});document.getElementById('gpsBtn').disabled=true;document.getElementById('nfcBtn').disabled=true;document.getElementById('personnelBox').style.display='none';document.getElementById('siteBox').style.display='none';document.getElementById('submitPersonBtn').style.display='none';updateStatus('Lütfen önce giriş yapın.','#fff3cd','#856404')}
-function updateNetworkStatus(){const d=document.getElementById('networkStatus');if(navigator.onLine){d.textContent='📡 Çevrimiçi - Senkronizasyon aktif';d.classList.remove('offline');setTimeout(syncOfflineQueue,500)}else{d.textContent='⚠️ Çevrimdışı - Veriler cihazda bekletilecek';d.classList.add('offline')}}
-function updateStatus(text,bg,color){const b=document.getElementById('statusBox');b.textContent=text;b.style.backgroundColor=bg;b.style.color=color}
-function logMessage(text){const box=document.getElementById('logBox');const line=document.createElement('div');line.textContent='['+new Date().toLocaleTimeString('tr-TR')+'] '+text;box.appendChild(line);box.scrollTop=box.scrollHeight}
-function playBip(){try{const C=window.AudioContext||window.webkitAudioContext;const c=new C(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=900;g.gain.value=.15;o.start();setTimeout(()=>{o.stop();c.close()},150)}catch(e){}}
+    document.querySelectorAll(".mode-btn").forEach(b=>b.disabled=false);
+    document.getElementById("reportBox").style.display=
+      loggedInUser.unvan.toLowerCase()==="formen" ? "block":"none";
+
+    updateStatus(tr("loginSuccess"),"#d4edda","#155724");
+    logMessage(`[LOGIN] ${loggedInUser.ad} (${loggedInUser.unvan})`);
+
+    if(loggedInUser.unvan.toLowerCase()==="formen"){
+      await loadPersonnelListForFormen();
+      await loadSiteCount();
+      startSiteCountTimer();
+    }
+
+    await syncOfflineQueue();
+
+  }catch(err){
+    btn.disabled=false;
+    updateStatus("Login failed","#f8d7da","#721c24");
+    alert(err.message||"Login failed");
+  }
+}
+
+async function logout(){
+  if(sessionToken){
+    try{ await apiPost({action:"logout",session:sessionToken},false); }catch(e){}
+  }
+  sessionToken=null;
+  loggedInUser=null;
+  currentMode=null;
+  stopSiteCountTimer();
+  location.reload();
+}
+
+async function loadPersonnelListForFormen(){
+  if(!loggedInUser || loggedInUser.unvan.toLowerCase()!=="formen") return;
+
+  const result=await apiPost({
+    action:"get_personnel",
+    session:sessionToken
+  });
+
+  globalPersonnelList=result.personeller||[];
+  const select=document.getElementById("personSelect");
+  select.innerHTML="";
+
+  const first=document.createElement("option");
+  first.value="";
+  first.textContent="-- "+tr("personSelect")+" --";
+  select.appendChild(first);
+
+  globalPersonnelList.forEach(p=>{
+    const opt=document.createElement("option");
+    opt.value=p.id;
+    opt.textContent=`${p.id} (${p.ad})`;
+    select.appendChild(opt);
+  });
+}
+
+function setMode(mode){
+  if(!loggedInUser){alert(tr("loginFirst"));return;}
+
+  currentMode=mode;
+  document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("btn-"+mode).classList.add("active");
+
+  verifiedGps={lat:null,lng:null};
+  compressedBase64="";
+  document.getElementById("submitPersonBtn").style.display="none";
+  document.getElementById("submitPersonBtn").disabled=true;
+  document.getElementById("cameraInput").value="";
+  document.getElementById("uploadStatus").textContent=tr("ready");
+
+  if(mode==="GİRİŞ" || mode==="ÇIKIŞ"){
+    document.getElementById("nfcBtn").style.display="block";
+    document.getElementById("personnelBox").style.display="none";
+    document.getElementById("fileUploadBox").style.display="none";
+    updateStatus(mode+" - "+tr("location"),"#cce5ff","#004085");
+  }else{
+    document.getElementById("nfcBtn").style.display="none";
+    document.getElementById("personnelBox").style.display="block";
+    document.getElementById("fileUploadBox").style.display="block";
+
+    if(loggedInUser.unvan.toLowerCase()==="formen"){
+      document.getElementById("formenPanel").style.display="block";
+      document.getElementById("userPanel").style.display="none";
+    }else{
+      document.getElementById("formenPanel").style.display="none";
+      document.getElementById("userPanel").style.display="block";
+    }
+    updateStatus(mode+" - "+tr("location"),"#cce5ff","#004085");
+  }
+
+  document.getElementById("gpsBtn").disabled=false;
+  document.getElementById("nfcBtn").disabled=true;
+}
+
+function getLiveLocation(){
+  if(!currentMode){alert(tr("loginFirst"));return;}
+
+  if(!navigator.geolocation){
+    alert("GPS unavailable");
+    return;
+  }
+
+  document.getElementById("gpsBtn").disabled=true;
+  updateStatus(tr("gps"),"#fff3cd","#856404");
+
+  navigator.geolocation.getCurrentPosition(
+    position=>{
+      verifiedGps.lat=position.coords.latitude;
+      verifiedGps.lng=position.coords.longitude;
+      logMessage(`[GPS] ${verifiedGps.lat}, ${verifiedGps.lng}`);
+
+      if(currentMode==="GİRİŞ" || currentMode==="ÇIKIŞ"){
+        document.getElementById("nfcBtn").disabled=false;
+        updateStatus(tr("gpsOk")+" "+tr("nfcActive"),"#d4edda","#155724");
+      }else{
+        updateStatus(tr("photoNeeded"),"#d4edda","#155724");
+      }
+    },
+    error=>{
+      document.getElementById("gpsBtn").disabled=false;
+      updateStatus("GPS: "+error.message,"#f8d7da","#721c24");
+    },
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+  );
+}
+
+function handleFileSelect(input){
+  const file=input.files&&input.files[0];
+  if(!file)return;
+
+  if(file.size>8*1024*1024){
+    alert("Photo too large.");
+    input.value="";
+    return;
+  }
+
+  document.getElementById("uploadStatus").textContent="Compressing...";
+  document.getElementById("submitPersonBtn").disabled=true;
+  document.getElementById("submitPersonBtn").style.display="none";
+
+  const reader=new FileReader();
+  reader.onload=e=>compressImage(e.target.result,1200,0.7);
+  reader.readAsDataURL(file);
+}
+
+function compressImage(base64,maxWidth,quality){
+  const img=new Image();
+  img.onload=()=>{
+    let w=img.width,h=img.height;
+    if(w>maxWidth){
+      h=Math.round(h*(maxWidth/w));
+      w=maxWidth;
+    }
+    const canvas=document.createElement("canvas");
+    canvas.width=w;canvas.height=h;
+    canvas.getContext("2d").drawImage(img,0,0,w,h);
+    compressedBase64=canvas.toDataURL("image/jpeg",quality);
+
+    const kb=(compressedBase64.length*0.75/1024).toFixed(1);
+    document.getElementById("uploadStatus").textContent=`${tr("ready")} (${kb} KB)`;
+
+    if(verifiedGps.lat!==null){
+      document.getElementById("submitPersonBtn").style.display="block";
+      document.getElementById("submitPersonBtn").disabled=false;
+    }
+  };
+  img.onerror=()=>{document.getElementById("uploadStatus").textContent="Photo error";};
+  img.src=base64;
+}
+
+async function submitPersonnelStatus(){
+  if(!verifiedGps.lat || !compressedBase64){
+    alert(tr("photoNeeded"));
+    return;
+  }
+
+  let targetId="";
+
+  if(loggedInUser.unvan.toLowerCase()==="formen"){
+    targetId=document.getElementById("personSelect").value;
+    if(!targetId){alert(tr("choosePerson"));return;}
+  }else{
+    targetId=loggedInUser.id;
+  }
+
+  const btn=document.getElementById("submitPersonBtn");
+  btn.disabled=true;
+
+  const data={
+    action:"save_data",
+    session:sessionToken,
+    islem_tipi:currentMode,
+    target_personel_id:targetId,
+    konum:`${verifiedGps.lat}, ${verifiedGps.lng}`,
+    senkron_durumu:navigator.onLine?"Canlı İletim":"Cihazdan Senkronize",
+    image_base64:compressedBase64,
+    image_type:"image/jpeg",
+    event_time:new Date().toISOString(),
+    ip_adresi:await getPublicIP(),
+    cihaz_bilgisi:navigator.userAgent
+  };
+
+  await processRecord(data);
+
+  document.getElementById("submitPersonBtn").style.display="none";
+  document.getElementById("cameraInput").value="";
+  compressedBase64="";
+  verifiedGps={lat:null,lng:null};
+  currentMode=null;
+  document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("gpsBtn").disabled=true;
+  document.getElementById("nfcBtn").disabled=true;
+  document.getElementById("fileUploadBox").style.display="none";
+  document.getElementById("personnelBox").style.display="none";
+  updateStatus(tr("sent"),"#d4edda","#155724");
+
+  if(loggedInUser.unvan.toLowerCase()==="formen") await loadSiteCount();
+}
+
+async function startNfcScan(){
+  if(!("NDEFReader" in window)){
+    alert(tr("nfcUnsupported"));
+    return;
+  }
+
+  try{
+    if(!nfcReader) nfcReader=new NDEFReader();
+    await nfcReader.scan();
+
+    if(!nfcScanStarted){
+      nfcReader.onreading=handleNfcReading;
+      nfcScanStarted=true;
+    }
+
+    updateStatus(tr("nfcActive"),"#cce5ff","#004085");
+    logMessage("[NFC] Scanner active.");
+
+  }catch(e){
+    logMessage("[NFC ERROR] "+e.message);
+    alert(e.message||"NFC error");
+  }
+}
+
+async function handleNfcReading(event){
+  if(!loggedInUser || !currentMode) return;
+
+  const uid=String(event.serialNumber||"").trim();
+
+  if(!uid){
+    updateStatus("NFC UID unavailable","#f8d7da","#721c24");
+    return;
+  }
+
+  playBip();
+  logMessage(`[NFC] UID=${uid}`);
+
+  const data={
+    action:"save_data",
+    session:sessionToken,
+    islem_tipi:currentMode,
+    nfc_uid:uid,
+    konum:`${verifiedGps.lat}, ${verifiedGps.lng}`,
+    senkron_durumu:navigator.onLine?"Canlı İletim":"Cihazdan Senkronize",
+    image_base64:"",
+    image_type:"",
+    event_time:new Date().toISOString(),
+    ip_adresi:await getPublicIP(),
+    cihaz_bilgisi:navigator.userAgent
+  };
+
+  await processRecord(data);
+
+  // Grup NFC taraması devam eder.
+  updateStatus(tr("nfcActive"),"#cce5ff","#004085");
+  if(loggedInUser.unvan.toLowerCase()==="formen") await loadSiteCount();
+}
+
+async function processRecord(data){
+  if(navigator.onLine){
+    try{
+      const result=await apiPost(data);
+      if(result.status==="success"){
+        logMessage(result.duplicate?"[SERVER] Duplicate ignored.":"[SERVER] Saved.");
+        updateStatus(tr("sent"),"#d4edda","#155724");
+        return true;
+      }
+      if(result.code==="SESSION_INVALID"){
+        sessionToken=null;
+        alert(tr("sessionExpired"));
+        return false;
+      }
+    }catch(e){
+      logMessage("[NETWORK] Send failed; queued.");
+    }
+  }
+
+  data.senkron_durumu="Cihazdan Senkronize";
+  data.ip_adresi="Cihazda Kayıt (Offline)";
+  data.event_time=data.event_time||new Date().toISOString();
+
+  const queue=JSON.parse(localStorage.getItem(QUEUE_KEY)||"[]");
+  queue.push(data);
+  localStorage.setItem(QUEUE_KEY,JSON.stringify(queue));
+
+  updateStatus(tr("offlineSaved"),"#fff3cd","#856404");
+  logMessage(`[OFFLINE] Queue=${queue.length}`);
+  return false;
+}
+
+async function syncOfflineQueue(){
+  if(!navigator.onLine || !sessionToken)return;
+
+  const queue=JSON.parse(localStorage.getItem(QUEUE_KEY)||"[]");
+  if(!queue.length)return;
+
+  const remaining=[];
+
+  for(const record of queue){
+    try{
+      const result=await apiPost(record);
+      if(result.status!=="success") remaining.push(record);
+    }catch(e){
+      remaining.push(record);
+    }
+  }
+
+  localStorage.setItem(QUEUE_KEY,JSON.stringify(remaining));
+  logMessage(`[SYNC] Remaining=${remaining.length}`);
+}
+
+async function apiPost(payload,allowSessionRetry=true){
+  if(API_URL.includes("BURAYA_")){
+    throw new Error("API_URL henüz ayarlanmadı.");
+  }
+
+  const response=await fetch(API_URL,{
+    method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify(payload)
+  });
+
+  const text=await response.text();
+  let result;
+
+  try{result=JSON.parse(text);}
+  catch(e){throw new Error("Sunucu JSON döndürmedi.");}
+
+  if(result.code==="SESSION_INVALID"){
+    sessionToken=null;
+    throw new Error(tr("sessionExpired"));
+  }
+
+  if(result.status!=="success"){
+    throw new Error(result.message||"API error");
+  }
+
+  return result;
+}
+
+async function getPublicIP(){
+  try{
+    const r=await fetch("https://api.ipify.org?format=json",{cache:"no-store"});
+    const j=await r.json();
+    return j.ip||tr("unknown");
+  }catch(e){
+    return "IP Alınamadı";
+  }
+}
+
+async function loadSiteCount(){
+  if(!loggedInUser || loggedInUser.unvan.toLowerCase()!=="formen")return;
+  const date=document.getElementById("reportDate").value;
+  if(!date)return;
+
+  try{
+    const result=await apiPost({
+      action:"get_site_count",
+      session:sessionToken,
+      date:date
+    });
+
+    document.getElementById("onSiteCount").textContent=result.count;
+    document.getElementById("onSiteDate").textContent=
+      `${tr("selected")} ${formatDateForDisplay(date)}`;
+    document.getElementById("onSiteBox").style.display="block";
+  }catch(e){
+    logMessage("[SITE COUNT] "+e.message);
+  }
+}
+
+function startSiteCountTimer(){
+  stopSiteCountTimer();
+  siteCountTimer=setInterval(()=>{
+    const selected=document.getElementById("reportDate").value;
+    const today=getTodayString();
+    if(selected===today)loadSiteCount();
+  },60000);
+}
+
+function stopSiteCountTimer(){
+  if(siteCountTimer){clearInterval(siteCountTimer);siteCountTimer=null;}
+}
+
+async function loadReport(){
+  if(!loggedInUser || loggedInUser.unvan.toLowerCase()!=="formen")return;
+
+  const date=document.getElementById("reportDate").value;
+  if(!date){alert(tr("invalidDate"));return;}
+
+  try{
+    const result=await apiPost({
+      action:"get_report",
+      session:sessionToken,
+      date:date
+    });
+
+    currentReport=result;
+    buildPrintArea(result);
+    logMessage(`[REPORT] ${result.rows.length} rows.`);
+  }catch(e){
+    alert(e.message);
+  }
+}
+
+function buildPrintArea(report){
+  const area=document.getElementById("printArea");
+  area.textContent="";
+
+  const header=document.createElement("div");
+  header.className="print-header";
+
+  const h=document.createElement("h1");
+  h.textContent=tr("printTitle");
+  header.appendChild(h);
+
+  const meta=document.createElement("div");
+  meta.className="print-meta";
+  meta.textContent=
+    `${tr("selected")} ${formatDateForDisplay(report.date)} | ${tr("printTime")}: ${new Date().toLocaleString()}`;
+  header.appendChild(meta);
+  area.appendChild(header);
+
+  const summary=document.createElement("div");
+  summary.className="print-summary";
+  summary.textContent=`${tr("site")}: ${report.count} ${tr("person")}`;
+  area.appendChild(summary);
+
+  const table=document.createElement("table");
+  table.className="print-table";
+
+  const thead=document.createElement("thead");
+  const hr=document.createElement("tr");
+  [tr("selected").replace(":",""),"İşlem Tipi","Personel_ID_Ad_Soyad"].forEach(x=>{
+    const th=document.createElement("th");
+    th.textContent=x;
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);
+  table.appendChild(thead);
+
+  const tbody=document.createElement("tbody");
+
+  report.rows.forEach(row=>{
+    const trEl=document.createElement("tr");
+
+    if(row.status==="sahada")trEl.className="row-sahada";
+    if(row.status==="cikis")trEl.className="row-cikis";
+    if(row.status==="izinli")trEl.className="row-izinli";
+    if(row.status==="raporlu")trEl.className="row-raporlu";
+
+    [row.tarih_saat,row.islem_tipi,row.personel].forEach(v=>{
+      const td=document.createElement("td");
+      td.textContent=v;
+      trEl.appendChild(td);
+    });
+
+    tbody.appendChild(trEl);
+  });
+
+  table.appendChild(tbody);
+  area.appendChild(table);
+
+  const legend=document.createElement("div");
+  legend.className="legend";
+
+  const items=[
+    ["legend-green",tr("legendGreen")],
+    ["legend-yellow",tr("legendYellow")],
+    ["legend-blue",tr("legendBlue")],
+    ["legend-orange",tr("legendOrange")]
+  ];
+
+  items.forEach(([cls,text])=>{
+    const span=document.createElement("span");
+    span.className=cls;
+    span.textContent=text;
+    legend.appendChild(span);
+  });
+
+  area.appendChild(legend);
+
+  if(!report.rows.length){
+    const empty=document.createElement("p");
+    empty.textContent=tr("noData");
+    area.appendChild(empty);
+  }
+}
+
+async function printReport(){
+  if(!currentReport){
+    await loadReport();
+  }
+  if(currentReport){
+    buildPrintArea(currentReport);
+    window.print();
+  }
+}
+
+function formatDateForDisplay(dateString){
+  const p=dateString.split("-");
+  return `${p[2]}.${p[1]}.${p[0]}`;
+}
+
+function getTodayString(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function updateNetworkStatus(){
+  const el=document.getElementById("networkStatus");
+  el.textContent=navigator.onLine?tr("online"):tr("offline");
+  el.classList.toggle("offline",!navigator.onLine);
+  if(navigator.onLine)syncOfflineQueue();
+}
+
+function updateStatus(text,bg,color){
+  const box=document.getElementById("statusBox");
+  box.textContent=text;
+  box.style.backgroundColor=bg;
+  box.style.color=color;
+}
+
+function logMessage(text){
+  const box=document.getElementById("logBox");
+  const line=document.createElement("div");
+  line.textContent=`[${new Date().toLocaleTimeString("tr-TR")}] ${text}`;
+  box.appendChild(line);
+  box.scrollTop=box.scrollHeight;
+}
+
+function playBip(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();
+    osc.connect(ctx.destination);
+    osc.frequency.value=900;
+    osc.start();
+    setTimeout(()=>{osc.stop();ctx.close();},120);
+  }catch(e){}
+}
 </script>
 </body>
 </html>
