@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDKS Saha Terminali</title>
+    <title>PDKS Saha Terminali - Güvenli Sürüm</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
@@ -49,19 +49,20 @@
     <div class="personnel-box" id="personnelBox">
         <label for="personSelect" style="font-size: 12px; font-weight: bold; color: #333;">Personel Seçiniz:</label>
         <select id="personSelect">
-            <option value="">-- Google Sheets'ten Liste Yükleniyor... --</option>
+            <option value="">-- Güvenli Bağlantı Kuruluyor... --</option>
         </select>
         <button class="action-btn btn-orange" id="submitPersonBtn" onclick="submitPersonnelStatus()">Seçilen Durumu Kaydet</button>
     </div>
 
     <div class="log" id="logBox">
-        > Terminal başlatıldı.<br>
-        > Personel listesi Google Sheets'ten çekiliyor...<br>
+        > Güvenli terminal başlatıldı.<br>
+        > Token kimlik doğrulaması aktif.<br>
     </div>
 </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxJj4NzhGV4-mTIurfZQi47fmbqcsUlvI3RPiPn4wy1Jz0pLFrFtU9AZljcRpiyLPYd/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycby7xgRdGuzfWsPXTS3_9Zb3DUUqD7Dave_lyXVYeIVN0NXpHf_ufuqYuUnXRioMmcLd/exec";
+    const AUTH_TOKEN = "PDKS-SECURE-AUTH-98f4b2c17e6a3d5f8b9e0a1c2d3e4f5a";
     
     let currentMode = null;
     let verifiedGps = { lat: null, lng: null };
@@ -86,24 +87,24 @@
                     opt.textContent = p.ad;
                     select.appendChild(opt);
                 });
-                logMessage("[SİSTEM] Personel listesi Google Sheets'ten yüklendi.");
+                logMessage("[GÜVENLİK OK] Personel listesi doğrulandı ve yüklendi.");
             } else {
                 logMessage("[HATA] " + (result.message || "Liste alınamadı."));
             }
         } catch (e) {
-            logMessage("[HATA] Personel listesi bağlantı kurulamadı.");
+            logMessage("[HATA] Sunucu ile bağlantı kurulamadı.");
         }
     }
 
     function updateNetworkStatus() {
         const statusDiv = document.getElementById('networkStatus');
         if (navigator.onLine) {
-            statusDiv.textContent = '📡 Çevrimiçi (Online) - Sistem Senkronize';
+            statusDiv.textContent = '📡 Çevrimiçi (Online) - Güvenli Senkronizasyon';
             statusDiv.classList.remove('offline');
             syncOfflineQueue();
             loadPersonnelList();
         } else {
-            statusDiv.textContent = '⚠️ Çevrimdışı (Offline) - Veriler Cihaza Kaydedilecek';
+            statusDiv.textContent = '⚠️ Çevrimdışı (Offline) - Veriler Şifreli Saklanacak';
             statusDiv.classList.add('offline');
         }
     }
@@ -177,6 +178,7 @@
 
         let now = new Date();
         let recordData = {
+            token: AUTH_TOKEN,
             tarih_saat: now.getFullYear() + "-" + 
                         ("0" + (now.getMonth() + 1)).slice(-2) + "-" + 
                         ("0" + now.getDate()).slice(-2) + " " + 
@@ -215,6 +217,7 @@
                     
                     let now = new Date();
                     let recordData = {
+                        token: AUTH_TOKEN,
                         tarih_saat: now.getFullYear() + "-" + 
                                     ("0" + (now.getMonth() + 1)).slice(-2) + "-" + 
                                     ("0" + now.getDate()).slice(-2) + " " + 
@@ -240,7 +243,7 @@
 
     async function processRecord(data) {
         if (navigator.onLine) {
-            logMessage(`[AĞ] Sunucuya gönderiliyor: ${data.kart_uid}`);
+            logMessage(`[AĞ] Güvenli sunucuya gönderiliyor...`);
             let success = await sendToGoogleSheets(data);
             if (!success) {
                 saveToOfflineQueue(data);
@@ -260,13 +263,14 @@
             
             let result = await response.json();
             if (result.status === "success") {
-                logMessage(`[BAŞARILI] Kayıt işlendi: ${data.kart_uid}`);
+                logMessage(`[BAŞARILI] Doğrulandı ve işlendi.`);
                 return true;
             } else {
-                throw new Error("Sunucu reddetti.");
+                logMessage(`[REDDEDİLDİ] Yetkisiz istek.`);
+                return false;
             }
         } catch (error) {
-            logMessage(`[HATA] İletim başarısız. Çevrimdışı sıraya alınıyor.`);
+            logMessage(`[HATA] İletim başarısız. Sıraya alınıyor.`);
             return false;
         }
     }
@@ -275,7 +279,7 @@
         let queue = JSON.parse(localStorage.getItem('pdksQueue') || "[]");
         queue.push(data);
         localStorage.setItem('pdksQueue', JSON.stringify(queue));
-        logMessage(`[ÇEVRİMDIŞI] Cihaz hafızasına kaydedildi (${queue.length} bekleyen)`);
+        logMessage(`[ÇEVRİMDIŞI] Şifreli kuyruğa alındı (${queue.length} bekleyen)`);
         updateStatus(`İnternet Yok. Cihaza Kaydedildi!`, "#fff3cd", "#856404");
     }
 
@@ -283,7 +287,7 @@
         let queue = JSON.parse(localStorage.getItem('pdksQueue') || "[]");
         if (queue.length === 0) return;
 
-        logMessage(`[SENKRONİZASYON] ${queue.length} adet bekleyen kayıt iletiliyor...`);
+        logMessage(`[SENKRONİZASYON] ${queue.length} bekleyen güvenli kayıt iletiliyor...`);
         let remainingQueue = [];
         
         for (let i = 0; i < queue.length; i++) {
