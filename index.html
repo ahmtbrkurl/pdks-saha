@@ -181,6 +181,7 @@ h3{margin:0;color:#333;font-size:20px}
 const API_URL = "https://script.google.com/macros/s/AKfycby7xgRdGuzfWsPXTS3_9Zb3DUUqD7Dave_lyXVYeIVN0NXpHf_ufuqYuUnXRioMmcLd/exec";
 const STORAGE_LANG_KEY = "pdks_language_v3";
 const QUEUE_KEY = "pdksQueue_v3";
+const ERROR_QUEUE_KEY = "pdksErrorQueue_v3";
 
 let sessionToken = null;
 let loggedInUser = null;
@@ -190,8 +191,10 @@ let compressedBase64 = "";
 let globalPersonnelList = [];
 let nfcReader = null;
 let nfcScanStarted = false;
+let nfcScanStarting = false;
 let siteCountTimer = null;
 let currentReport = null;
+let nfcProcessing = false;
 
 const T = {
   tr:{
@@ -292,6 +295,7 @@ function initializeApp(){
   setToday();
   updateNetworkStatus();
   logMessage("[SYSTEM] Terminal ready.");
+  if(navigator.onLine)flushErrorReportQueue();
 }
 
 function setToday(){
@@ -553,40 +557,187 @@ async function submitPersonnelStatus(){
   if(loggedInUser.unvan.toLowerCase()==="formen") await loadSiteCount();
 }
 
+
+async function sendErrorReport(payload){
+  try{
+    const response=await fetch(API_URL,{
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({
+        action:"log_client_error",
+        user:payload.user,
+        action_name:payload.action_name,
+        error_type:payload.error_type,
+        error_message:payload.error_message,
+        uid:payload.uid,
+        konum:payload.konum,
+        device:payload.device,
+        terminal_log:payload.terminal_log
+      })
+    });
+
+    const text=await response.text();
+    let result;
+
+    try{
+      result=JSON.parse(text);
+    }catch(e){
+      throw new Error("Hata sunucusu JSON döndürmedi. HTTP="+response.status);
+    }
+
+    if(result.status!=="success"){
+      throw new Error(result.message||"Hata logu reddedildi.");
+    }
+
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function queueErrorReport(payload){
+  try{
+    let queue=JSON.parse(localStorage.getItem(ERROR_QUEUE_KEY)||"[]");
+    queue.push(payload);
+    if(queue.length>50) queue=queue.slice(-50);
+    localStorage.setItem(ERROR_QUEUE_KEY,JSON.stringify(queue));
+  }catch(e){}
+}
+
+async function reportTerminalError(errorType,message,actionName="",uid=""){
+  const payload={
+    user:loggedInUser ? loggedInUser.ad : "Giriş yapılmamış",
+    action_name:actionName||currentMode||"Bilinmeyen",
+    error_type:errorType||"CLIENT_ERROR",
+    error_message:String(message||"Bilinmeyen hata"),
+    uid:String(uid||""),
+    konum:(verifiedGps.lat!==null && verifiedGps.lng!==null)
+      ? `${verifiedGps.lat}, ${verifiedGps.lng}` : "",
+    device:navigator.userAgent,
+    terminal_log:document.getElementById("logBox")
+      ? document.getElementById("logBox").innerText.slice(-10000) : ""
+  };
+
+  if(navigator.onLine){
+    const sent=await sendErrorReport(payload);
+    if(!sent) queueErrorReport(payload);
+  }else{
+    queueErrorReport(payload);
+  }
+}
+
+async function flushErrorReportQueue(){
+  if(!navigator.onLine)return;
+
+  let queue=[];
+  try{
+    queue=JSON.parse(localStorage.getItem(ERROR_QUEUE_KEY)||"[]");
+  }catch(e){
+    queue=[];
+  }
+
+  if(!queue.length)return;
+
+  const remaining=[];
+
+  for(const item of queue){
+    if(!(await sendErrorReport(item))) remaining.push(item);
+  }
+
+  localStorage.setItem(ERROR_QUEUE_KEY,JSON.stringify(remaining));
+
+  if(remaining.length===0){
+    logMessage("[HATA SYNC] Bekleyen hata raporları gönderildi.");
+  }else{
+    logMessage(`[HATA SYNC] ${remaining.length} hata raporu bekliyor.`);
+  }
+}
+
+function logError(text,errorType="CLIENT_ERROR",actionName="",uid=""){
+  const box=document.getElementById("logBox");
+  const line=document.createElement("div");
+  line.style.color="#ff4d4d";
+  line.style.fontWeight="bold";
+  line.textContent=`[${new Date().toLocaleTimeString("tr-TR")}] ${text}`;
+  box.appendChild(line);
+  box.scrollTop=box.scrollHeight;
+
+  // Kullanıcıya hata gösterilir; yöneticiye arka planda gönderilir.
+  reportTerminalError(errorType,text,actionName,uid);
+}
+
+
 async function startNfcScan(){
   if(!("NDEFReader" in window)){
     alert(tr("nfcUnsupported"));
     return;
   }
 
-  try{
-    if(!nfcReader) nfcReader=new NDEFReader();
-    await nfcReader.scan();
+  // Web NFC aynı NDEFReader üzerinde ikinci bir scan() başlatmaya izin vermez.
+  // Kullanıcı butona tekrar bassa bile mevcut taramayı yeniden başlatma.
+  if(nfcScanStarted || nfcScanStarting){
+    updateStatus(tr("nfcActive"),"#cce5ff","#004085");
+    logMessage("[NFC] Tarama zaten aktif; yeni scan() başlatılmadı.");
+    return;
+  }
 
-    if(!nfcScanStarted){
+  nfcScanStarting=true;
+
+  try{
+    if(!nfcReader){
+      nfcReader=new NDEFReader();
       nfcReader.onreading=handleNfcReading;
-      nfcScanStarted=true;
+      nfcReader.onreadingerror=()=>{
+        logError("[NFC] Kart okunamadı; tekrar deneyin.","NFC_READ_ERROR",currentMode,"");
+      };
     }
 
+    await nfcReader.scan();
+
+    nfcScanStarted=true;
+    nfcScanStarting=false;
+
     updateStatus(tr("nfcActive"),"#cce5ff","#004085");
-    logMessage("[NFC] Scanner active.");
+    logMessage("[NFC] Tarama aktif. Kart okutabilirsiniz.");
 
   }catch(e){
-    logMessage("[NFC ERROR] "+e.message);
-    alert(e.message||"NFC error");
+    nfcScanStarting=false;
+
+    // Chrome/Android bazen ikinci scan() çağrısında bu hatayı üretir.
+    // Mevcut tarama zaten çalışıyorsa bunu kullanıcı hatası olarak gösterme.
+    const msg=String(e && e.message || e);
+
+    if(msg.toLowerCase().includes("scan() operation is ongoing")){
+      nfcScanStarted=true;
+      updateStatus(tr("nfcActive"),"#cce5ff","#004085");
+      logMessage("[NFC] Tarama zaten aktif; mevcut tarama kullanılmaya devam ediyor.");
+      return;
+    }
+
+    logError("[NFC ERROR] "+msg,"NFC_SCAN_ERROR",currentMode,"");
+    alert(msg||"NFC error");
   }
 }
 
 async function handleNfcReading(event){
   if(!loggedInUser || !currentMode) return;
 
+  // Aynı kartın çok hızlı arka arkaya event üretmesi durumunda
+  // aynı PDKS isteğini paralel çalıştırma.
+  if(nfcProcessing){
+    logMessage("[NFC] Önceki kart işlemi tamamlanıyor; bu okuma bekletildi.");
+    return;
+  }
+
   const uid=String(event.serialNumber||"").trim();
 
   if(!uid){
+    logError("[NFC ERROR] UID alınamadı.","NFC_READ_ERROR",currentMode,"");
     updateStatus("NFC UID unavailable","#f8d7da","#721c24");
     return;
   }
 
+  nfcProcessing=true;
   playBip();
   logMessage(`[NFC] UID=${uid}`);
 
@@ -604,30 +755,37 @@ async function handleNfcReading(event){
     cihaz_bilgisi:navigator.userAgent
   };
 
-  await processRecord(data);
+  try{
+    await processRecord(data);
 
-  // Grup NFC taraması devam eder.
-  updateStatus(tr("nfcActive"),"#cce5ff","#004085");
-  if(loggedInUser.unvan.toLowerCase()==="formen") await loadSiteCount();
+    // Grup NFC taraması devam eder.
+    updateStatus(tr("nfcActive"),"#cce5ff","#004085");
+    if(loggedInUser.unvan.toLowerCase()==="formen") await loadSiteCount();
+  }finally{
+    nfcProcessing=false;
+  }
 }
 
 async function processRecord(data){
   if(navigator.onLine){
     try{
       const result=await apiPost(data);
+
       if(result.status==="success"){
         logMessage(result.duplicate?"[SERVER] Duplicate ignored.":"[SERVER] Saved.");
         updateStatus(tr("sent"),"#d4edda","#155724");
         return true;
       }
-      if(result.code==="SESSION_INVALID"){
-        sessionToken=null;
-        alert(tr("sessionExpired"));
-        return false;
-      }
+
+      // apiPost normalde hata fırlatır; güvenlik için burada da kontrol ediyoruz.
+      const msg=result.message||"Sunucu kaydı başarısız.";
+      logError(`[SERVER ERROR] ${msg}`,"SERVER_REJECTED",data.islem_tipi,data.nfc_uid||"");
     }catch(e){
-      logMessage("[NETWORK] Send failed; queued.");
+      const msg=e && e.message ? e.message : String(e);
+      logError(`[NETWORK ERROR] ${msg}`,"NETWORK_ERROR",data.islem_tipi,data.nfc_uid||"");
     }
+  }else{
+    logError("[NETWORK ERROR] Cihaz çevrimdışı.","NETWORK_ERROR",data.islem_tipi,data.nfc_uid||"");
   }
 
   data.senkron_durumu="Cihazdan Senkronize";
@@ -639,7 +797,7 @@ async function processRecord(data){
   localStorage.setItem(QUEUE_KEY,JSON.stringify(queue));
 
   updateStatus(tr("offlineSaved"),"#fff3cd","#856404");
-  logMessage(`[OFFLINE] Queue=${queue.length}`);
+  logMessage(`[OFFLINE] Kayıt kuyruğa alındı. Queue=${queue.length}`);
   return false;
 }
 
@@ -649,14 +807,36 @@ async function syncOfflineQueue(){
   const queue=JSON.parse(localStorage.getItem(QUEUE_KEY)||"[]");
   if(!queue.length)return;
 
+  logMessage(`[SYNC] Bekleyen kayıt=${queue.length}`);
+
   const remaining=[];
 
   for(const record of queue){
     try{
       const result=await apiPost(record);
-      if(result.status!=="success") remaining.push(record);
+
+      if(result.status==="success"){
+        logMessage("[SYNC] Bekleyen kayıt gönderildi.");
+      }else{
+        remaining.push(record);
+        logError(
+          `[SYNC SERVER ERROR] ${result.message||"Bilinmeyen hata"}`,
+          "SERVER_REJECTED",
+          record.islem_tipi,
+          record.nfc_uid||""
+        );
+      }
+
     }catch(e){
       remaining.push(record);
+
+      const msg=e && e.message ? e.message : String(e);
+      logError(
+        `[SYNC NETWORK ERROR] ${msg}`,
+        "NETWORK_ERROR",
+        record.islem_tipi,
+        record.nfc_uid||""
+      );
     }
   }
 
@@ -678,16 +858,19 @@ async function apiPost(payload,allowSessionRetry=true){
   const text=await response.text();
   let result;
 
-  try{result=JSON.parse(text);}
-  catch(e){throw new Error("Sunucu JSON döndürmedi.");}
+  try{
+    result=JSON.parse(text);
+  }catch(e){
+    throw new Error(`HTTP ${response.status} - Sunucu JSON döndürmedi. Yanıt: ${text.slice(0,300)}`);
+  }
 
   if(result.code==="SESSION_INVALID"){
     sessionToken=null;
-    throw new Error(tr("sessionExpired"));
+    throw new Error(`SESSION_INVALID: ${result.message||tr("sessionExpired")}`);
   }
 
   if(result.status!=="success"){
-    throw new Error(result.message||"API error");
+    throw new Error(`${result.code ? result.code+" - " : ""}${result.message||"API error"}`);
   }
 
   return result;
@@ -720,7 +903,7 @@ async function loadSiteCount(){
       `${tr("selected")} ${formatDateForDisplay(date)}`;
     document.getElementById("onSiteBox").style.display="block";
   }catch(e){
-    logMessage("[SITE COUNT] "+e.message);
+    logError("[SITE COUNT ERROR] "+e.message,"SITE_COUNT_ERROR","get_site_count","");
   }
 }
 
@@ -754,6 +937,7 @@ async function loadReport(){
     buildPrintArea(result);
     logMessage(`[RAPOR] ${result.rows.length} kayıt hazır.`);
   }catch(e){
+    logError("[REPORT ERROR] "+e.message,"REPORT_ERROR","get_report","");
     alert(e.message);
   }
 }
@@ -866,7 +1050,10 @@ function updateNetworkStatus(){
   const el=document.getElementById("networkStatus");
   el.textContent=navigator.onLine?tr("online"):tr("offline");
   el.classList.toggle("offline",!navigator.onLine);
-  if(navigator.onLine)syncOfflineQueue();
+  if(navigator.onLine){
+    syncOfflineQueue();
+    flushErrorReportQueue();
+  }
 }
 
 function updateStatus(text,bg,color){
