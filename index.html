@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDKS Saha Terminali - Profesyonel (Yetki ve Giriş Destekli)</title>
+    <title>PDKS Saha Terminali - Profesyonel (5dk Grup Okuma ve İzinli Destekli)</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
@@ -121,7 +121,7 @@
 
         if (!uName || !uPass) { alert("Kullanıcı adı ve şifre girin!"); return; }
 
-        updateStatus(`Giriş yapılıyor...`, "#fff3cd", "#856404");
+        updateStatus(`Giriş yapılıyor... Butonlar kilitlendi.`, "#fff3cd", "#856404");
         document.querySelector('.login-box button').disabled = true;
         logMessage(`[GİRİŞ] Deneniyor: ${uName}...`);
 
@@ -142,7 +142,7 @@
                 logMessage(`[BAŞARILI] Hoş geldiniz, ${loggedInUser.ad} (${loggedInUser.unvan}).`);
                 updateStatus(`Giriş Başarılı, mod seçin.`, "#d4edda", "#155724");
                 
-                // --- KRİTİK: TÜM MOD BUTONLARINI AKTİF ET ---
+                // Mod butonlarını aktif et
                 document.querySelectorAll('.mode-grid button').forEach(btn => btn.disabled = false);
                 
                 // Formen ise tüm listeyi indir, User ise indirme
@@ -214,16 +214,16 @@
         
         // Butonu ve veriyi sıfırla
         const submitBtn = document.getElementById('submitPersonBtn');
-        submitBtn.style.display = 'none'; 
+        submitBtn.style.display = 'none'; // Butonu gizle
         submitBtn.disabled = true;
         compressedBase64 = ""; 
 
-        // GİRİŞ/ÇIKIŞ Modları (NFC tabanlı, fotoğraf yok)
+        // GİRİŞ/ÇIKIŞ Modları (NFC tabanlı, fotoğraf yok, kilitlenme yok)
         if (mode === 'GİRİŞ' || mode === 'ÇIKIŞ') {
             document.getElementById('nfcBtn').style.display = 'block';
             document.getElementById('personnelBox').style.display = 'none';
             document.getElementById('fileUploadBox').style.display = 'none';
-            updateStatus(`${mode} seçildi. Önce Konum alınız.`, "#cce5ff", "#004085");
+            updateStatus(`${mode} seçildi (GRUP OKUMA AKTİF). Önce Konum alınız.`, "#cce5ff", "#004085");
         } 
         // İZİNLİ/RAPORLU Modları (Belge tabanlı, fotoğraf var, yetki ayrımı var)
         else if(mode === 'İZİNLİ' || mode === 'RAPORLU') {
@@ -258,15 +258,16 @@
             (position) => {
                 verifiedGps.lat = position.coords.latitude;
                 verifiedGps.lng = position.coords.longitude;
-                updateStatus(`Konum Alındı, belge fotoğrafı çekin veya kart okutun.`, "#d4edda", "#155724");
-                logMessage(`[GPS OK] Koordinat alındı.`);
-
+                
                 if(currentMode === 'İZİNLİ' || currentMode === 'RAPORLU') {
+                    updateStatus(`Konum Alındı, belge fotoğrafı çekin.`, "#d4edda", "#155724");
+                    logMessage(`[GPS OK] Koordinat alındı, fotoğraf çekin.`);
                     // Kaydet butonu fotoğraf sıkıştırılınca açılacak
                 } else {
-                    // Giriş/Çıkış modları için NFC'yi aktif et
+                    // Giriş/Çıkış modları için terminal kilitlenmeyecek
                     document.getElementById('nfcBtn').disabled = false;
-                    logMessage("Sistem kart okumaya hazır.");
+                    updateStatus(`Konum Kilitlendi (GRUP OKUMA AKTİF). Kart okutun...`, "#cce5ff", "#004085");
+                    logMessage(`[GPS OK] Koordinat kilitlendi. Sıradaki personeli okutun.`);
                 }
             },
             (error) => {
@@ -328,22 +329,26 @@
     }
     // ----------------------------------------------
 
-    // --- İZİNLİ/RAPORLU Veri Gönderme Mantığı (Extra Veri Dahil) ---
+    // --- İZİNLİ/RAPORLU Veri Gönderme Mantığı (Extra Veri Dahil, Kilitlenme VAR) ---
     async function submitPersonnelStatus() {
         const s = document.getElementById('personSelect');
         let targetPersonnel;
 
-        // Formen/User Ayrımına göre target_personel'i belirle
         if (loggedInUser.unvan === 'Formen') {
             if (!s.value) { alert("Lütfen bir personel seçin!"); return; }
             targetPersonnel = s.value; // 'ID (Ad Soyad)'
         } else {
-            // User ise kendi adını ID dâhil al
-            targetPersonnel = loggedInUser.id + " (" + loggedInUser.ad + ")"; 
+            // User ise kendi adını al
+            targetPersonnel = loggedInUser.id + " (" + loggedInUser.ad + ")"; // Otomatik
         }
 
-        updateStatus(`Veriler gönderiliyor...`, "#fff3cd", "#856404");
+        // >>> KRİTİK DEĞİŞİKLİK: Debounce (Kilitlenme) context context context <<<
+        updateStatus(`Veriler gönderiliyor... Butonlar kilitlendi.`, "#fff3cd", "#856404");
         document.getElementById('submitPersonBtn').disabled = true;
+        document.querySelectorAll('.mode-grid button').forEach(btn => btn.disabled = true);
+        document.getElementById('gpsBtn').disabled = true;
+        document.querySelector('.login-box button').disabled = true;
+
         logMessage(`[AĞ] Gönderiliyor: ${targetPersonnel} Durumu...`);
 
         // Extra verileri topla
@@ -353,7 +358,9 @@
             const ipResponse = await fetch('https://api.ipify.org?format=json');
             const ipData = await ipResponse.json();
             publicIP = ipData.ip;
-        } catch (ipError) { console.warn("Public IP alınamadı."); }
+        } catch (ipError) {
+            console.warn("Public IP alınamadı.");
+        }
 
         let data = {
             token: AUTH_TOKEN,
@@ -362,7 +369,7 @@
             target_personel: targetPersonnel, // lookup'a girecek veri
             konum: verifiedGps.lat + ", " + verifiedGps.lng,
             senkron_durumu: navigator.onLine ? "Canlı İletim" : "Cihazdan Senkronize",
-            image_base64: compressedBase64, // Belge fotoğrafı
+            image_base64: compressedBase64, // Sıkıştırılmış resim
             image_type: "image/jpeg",
             
             // --- EXTRA VERİLER ---
@@ -373,29 +380,28 @@
         
         await processRecord(data);
         
-        // Formu sıfırla
-        if (loggedInUser.unvan === 'Formen') { s.value = ""; }
-        document.getElementById('fileUploadBox').style.display = 'none';
-        compressedBase64 = "";
-        document.getElementById('uploadStatus').innerText = "Hazır.";
-        document.getElementById('submitPersonBtn').style.display = 'none';
+        // Formu sıfırla ve kilidi aç (Sıfırla-unlockTerminal context context context context)
+        unlockTerminalIZINLI(); 
     }
     // ----------------------------------------------
 
-    // --- GİRİŞ/ÇIKIŞ NFC Kart Okuma Mantığı ---
+    // --- YENİ: GİRİŞ/ÇIKIŞ Grup NFC Kart Okuma Mantığı (Kilitlenme YOK) ---
     async function startNfcScan() {
         if (!('NDEFReader' in window)) { alert("Web NFC bu cihazda desteklenmiyor."); return; }
         try {
             const ndef = new NDEFReader();
             await ndef.scan();
             updateStatus(`NFC Aktif! Kart okutun... (${currentMode})`, "#cce5ff", "#004085");
-            logMessage(`[NFC] Tarayıcı aktif, kart okutun.`);
+            logMessage(`[NFC] Tarayıcı aktif, grup okuma hazır.`);
 
             ndef.onreading = async (event) => {
                 playBip();
                 let uid = event.serialNumber;
                 updateStatus(`KART OKUNDU: ${uid}`, "#d4edda", "#155724");
-                logMessage(`[NFC] Kart UID: ${uid}. Veri hazırlanıyor...`);
+                logMessage(`[NFC] Kart UID: ${uid}. Veri hazırlanıyor... Butonlar kilitlenmedi (Batch).`);
+                
+                // >>> DEĞİŞİKLİK: Debounce (Kilitlenme) YOK context context context <<<
+                // Sıradaki kart hemen okutulabilir.
                 
                 // NFC verisinde fotoğraf yok, extra veriler doPOST'ta lookup yapılması için hazırlanır.
                 let data = {
@@ -408,23 +414,25 @@
                     image_base64: "", // NFC'de fotoğraf yok
                     image_type: "",
                     
-                    // Gönderen kişi
+                    // Gönderen kişi yine NFC kartı okutan terminal
                     gönderen_personel: loggedInUser.ad,
                     ip_adresi: navigator.onLine ? "Canlı lookup (fetch tetiklenmedi)" : "Cihazda lookup (Offline)",
                     cihaz_bilgisi: navigator.userAgent
                 };
                 await processRecord(data);
+                
+                // Kayıt başarılı olduktan sonra terminali sıfırlama, sıradaki kartı bekle context context context context
+                updateStatus(`Kayıt gönderildi. Sıradaki kartı okutun...`, "#cce5ff", "#004085");
             };
         } catch (error) { logMessage(`[NFC HATA] ${error}`); }
     }
 
-    // --- Ortak Kayıt ve Senkron Mantığı ---
     async function processRecord(data) {
         if (navigator.onLine) { logMessage(`[AĞ] Sunucuya gönderiliyor...`); if (await sendToGoogleSheets(data)) return; }
         
         // Offline ise kuyruğa ekle
         let queue = JSON.parse(localStorage.getItem('pdksQueue') || "[]");
-        // Offline kuyruğuna gönderirken IP'yi boş bırak
+        // Offline kuyruğuna gönderirken IP'yi boş bırakacağız çünkü offline alınmadı
         data.ip_adresi = "Cihazda Kayıt (Offline)";
         
         queue.push(data);
@@ -446,10 +454,14 @@
 
             if (result.status === "success") {
                 logMessage(`[BAŞARILI] Kayıt sunucuya işlendi.`);
-                updateStatus("Kayıt Tamamlandı!", "#d4edda", "#155724");
+                if (!(data.islem_tipi === 'GİRİŞ' || data.islem_tipi === 'ÇIKIŞ')) {
+                  updateStatus("Kayıt Tamamlandı!", "#d4edda", "#155724");
+                }
                 return true;
             } else {
                 logMessage(`[REDDEDİLDİ] Sunucu hatası: ${result.message}`);
+                // Sunucu çift kayıt hatası döndüyse, alert ile kullanıcıya göster.
+                if (result.message.startsWith("Çift Kayıt")) { alert(result.message); }
                 return false;
             }
         } catch (error) {
@@ -474,6 +486,36 @@
         
         localStorage.setItem('pdksQueue', JSON.stringify(rem));
         logMessage(`[SENKRON] Tamamlandı. Kuyruk temizlendi.`);
+    }
+
+    // >>> YENİ: İZİNLİ/RAPORLU Terminal Kilidi Açma ve Sıfırlama Fonksiyonu <<<
+    // GİRİŞ/ÇIKIŞ (Batch Scan) için sıfırlama yapılmaz context context context context
+    function unlockTerminalIZINLI() {
+        // Formu sıfırla context context context context
+        const s = document.getElementById('personSelect');
+        if (s) { s.value = ""; }
+        document.getElementById('fileUploadBox').style.display = 'none';
+        compressedBase64 = "";
+        document.getElementById('uploadStatus').innerText = "Hazır.";
+        document.getElementById('submitPersonBtn').style.display = 'none';
+
+        // İşlem modunu sıfırla context context context context
+        currentMode = null;
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+        updateStatus(`Kayıt tamamlandı. Yeni işlem seçin.`, "#d4edda", "#155724");
+
+        // Konumu sıfırla context context context context
+        verifiedGps = { lat: null, lng: null };
+
+        // Butonların durumunu ilk haline çevir
+        document.getElementById('gpsBtn').disabled = true; // Konum alınmadan açılmasın
+        document.getElementById('nfcBtn').disabled = true; 
+        document.getElementById('submitPersonBtn').disabled = true;
+        
+        // Kilidi aç ( disabled=false)
+        document.querySelectorAll('.mode-grid button').forEach(btn => btn.disabled = false);
+        // Giriş butonunu kilitli tut context context context context
+        document.querySelector('.login-box button').disabled = true;
     }
 
     function updateStatus(text, bg, color) {
