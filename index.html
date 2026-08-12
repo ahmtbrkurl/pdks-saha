@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDKS Saha Terminali - Profesyonel (5dk Sessiz Grup Okuma Ve doGET Destekli)</title>
+    <title>PDKS Saha Terminali - Profesyonel (IP Yakalama Ve doGET Destekli Nihai)</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
@@ -12,7 +12,7 @@
         #networkStatus { padding: 8px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 15px; background: #d4edda; color: #155724; }
         .offline { background: #f8d7da !important; color: #721c24 !important; }
 
-        /* Giriş Paneli */
+        /* Giriş Paneli (Login) */
         .login-box { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; }
         .login-box input { width: 100%; padding: 10px; margin: 5px 0 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         .login-box label { font-size: 11px; font-weight: bold; color: #495057; }
@@ -55,7 +55,7 @@
     </div>
     
     <div class="mode-grid">
-        <!-- Başlangıçta hepsi disabled, login başarılı olunca açılacak -->
+        <!-- Başlangıçta hepsi disabled -->
         <button class="mode-btn" id="btn-GİRİŞ" onclick="setMode('GİRİŞ')" disabled>GİRİŞ (NFC)</button>
         <button class="mode-btn" id="btn-ÇIKIŞ" onclick="setMode('ÇIKIŞ')" disabled>ÇIKIŞ (NFC)</button>
         <button class="mode-btn" id="btn-İZİNLİ" onclick="setMode('İZİNLİ')" disabled>İZİNLİ</button>
@@ -356,7 +356,7 @@
         lockTerminalIZINLI(); // Terminali kilitle
         logMessage(`[AĞ] Gönderiliyor: ${targetPersonnel} Durumu...`);
 
-        // >>> EK VERİLER context context context context context <<<
+        // >>> EXTRA VERİLER context context context context context <<<
         // Tarayıcı User-Agent context context context context context
         const userAgentString = navigator.userAgent;
         // Public IP context context context context context
@@ -392,7 +392,7 @@
     }
     // ----------------------------------------------
 
-    // --- YENİ: GİRİŞ/ÇIKIŞ Grup NFC Kart Okuma Mantığı (Debounce YOK, Sıfırlama YOK) ---
+    // --- YENİ: GİRİŞ/ÇIKIŞ Grup NFC Kart Okuma Mantığı (Hata Düzeltmesi: IP YAKALAMA) ---
     async function startNfcScan() {
         if (!('NDEFReader' in window)) { alert("Web NFC bu cihazda desteklenmiyor."); return; }
         try {
@@ -407,8 +407,17 @@
                 updateStatus(`KART OKUNDU: ${uid}`, "#d4edda", "#155724");
                 logMessage(`[NFC] Kart UID: ${uid}. Veri hazırlanıyor... Butonlar kilitlenmedi (Batch).`);
                 
-                // >>> DEĞİŞİKLİK: Debounce (Kilitlenme) YOK context context context context <<<
-                // Sıradaki kart hemen okutulabilir.
+                // >>> HATA DÜZELTMESİ context context context context <<<
+                // 1. IP Adresi (Cihazın public IP'sini alır) - BURAYA EKLENDİ
+                let publicIP = "Bilinmeyen IP (Fetch Hatası)"; // Varsayılan
+                try {
+                    const ipResponse = await fetch('https://api.ipify.org?format=json');
+                    const ipData = await ipResponse.json();
+                    publicIP = ipData.ip;
+                } catch (ipError) {
+                    console.warn("NFC IP adresi alınamadı (fetch error).");
+                }
+                // ----------------------------------------
                 
                 // NFC verisinde fotoğraf yok, extra veriler doPOST'ta lookup yapılması için hazırlanır.
                 let data = {
@@ -423,7 +432,8 @@
                     
                     // Gönderen kişi yine NFC kartı okutan terminal context context context context
                     gönderen_personel: loggedInUser.ad,
-                    ip_adresi: navigator.onLine ? "Canlı lookup (fetch tetiklenmedi)" : "Cihazda lookup (Offline)",
+                    // >>> HATA DÜZELTMESİ (Yeni Değişkeni Kullan) context <<<
+                    ip_adresi: publicIP, // navigator.onLine ? publicIP : "Cihazda lookup (Offline)", context assumed. 
                     cihaz_bilgisi: navigator.userAgent
                 };
                 await processRecord(data);
