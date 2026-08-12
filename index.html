@@ -27,7 +27,6 @@
         .btn-green { background: #28a745; }
         .btn-orange { background: #fd7e14; display: none; }
 
-        /* Personel ve Belge Alanı */
         .personnel-box { display: none; margin-top: 15px; text-align: left; }
         .personnel-box select { width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #ccc; font-size: 14px; margin-bottom: 10px; }
         
@@ -43,7 +42,7 @@
     <div id="networkStatus">📡 Çevrimiçi (Online) - Güvenli Senkronizasyon</div>
     <h3>PDKS Saha Terminali</h3>
 
-    <!-- Bireysel Giriş Paneli (Formen yoksa personel kendi girebilir) -->
+    <!-- Bireysel Giriş Paneli -->
     <div class="login-box" id="loginBox">
         <label>Personel Kullanıcı Adı:</label>
         <input type="text" id="usernameInput" placeholder="Örn: ahmet">
@@ -52,7 +51,6 @@
         <button class="action-btn" style="padding: 10px; font-size: 13px;" onclick="verifyUserLogin()">Personel Girişi Yap</button>
     </div>
     
-    <!-- İşlem Tipi Seçimi -->
     <div class="mode-grid">
         <button class="mode-btn" id="btn-GİRİŞ" onclick="setMode('GİRİŞ')">GİRİŞ</button>
         <button class="mode-btn" id="btn-ÇIKIŞ" onclick="setMode('ÇIKIŞ')">ÇIKIŞ</button>
@@ -93,7 +91,7 @@
     let currentMode = null;
     let verifiedGps = { lat: null, lng: null };
     let globalPersonnelList = [];
-    let loggedInUser = null; // Bireysel giriş yapan personel
+    let loggedInUser = null;
 
     window.addEventListener('online', updateNetworkStatus);
     window.addEventListener('offline', updateNetworkStatus);
@@ -123,7 +121,6 @@
         }
     }
 
-    // Personel Bireysel Giriş Kontrolü
     function verifyUserLogin() {
         let uName = document.getElementById('usernameInput').value.trim();
         let pass = document.getElementById('passwordInput').value.trim();
@@ -161,9 +158,8 @@
         if(mode === 'İZİNLİ' || mode === 'RAPORLU') {
             document.getElementById('nfcBtn').style.display = 'none';
             document.getElementById('personnelBox').style.display = 'block';
-            document.getElementById('fileUploadBox').style.display = 'block'; // Kamera alanını aç
+            document.getElementById('fileUploadBox').style.display = 'block';
             
-            // Eğer personel bireysel giriş yaptıysa, listede otomatik seç
             if (loggedInUser) {
                 let selectElem = document.getElementById('personSelect');
                 selectElem.value = loggedInUser.id;
@@ -218,7 +214,6 @@
         );
     }
 
-    // İzin / Rapor Durumunu ve Fotoğrafı Gönderme
     async function submitPersonnelStatus() {
         let selectElem = document.getElementById('personSelect');
         let selectedVal = selectElem.value;
@@ -267,7 +262,7 @@
             };
             reader.readAsDataURL(fileInput.files[0]);
         } else {
-            await sendDataAndFinish(""); // Fotoğrafsız kayıt
+            await sendDataAndFinish("");
         }
     }
 
