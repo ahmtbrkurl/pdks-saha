@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDKS Saha Terminali - Profesyonel (5dk Grup Okuma ve İzinli Destekli)</title>
+    <title>PDKS Saha Terminali - Profesyonel (5dk Sessiz Grup Okuma Ve doGET Destekli)</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
@@ -55,7 +55,7 @@
     </div>
     
     <div class="mode-grid">
-        <!-- Başlangıçta hepsi disabled -->
+        <!-- Başlangıçta hepsi disabled, login başarılı olunca açılacak -->
         <button class="mode-btn" id="btn-GİRİŞ" onclick="setMode('GİRİŞ')" disabled>GİRİŞ (NFC)</button>
         <button class="mode-btn" id="btn-ÇIKIŞ" onclick="setMode('ÇIKIŞ')" disabled>ÇIKIŞ (NFC)</button>
         <button class="mode-btn" id="btn-İZİNLİ" onclick="setMode('İZİNLİ')" disabled>İZİNLİ</button>
@@ -101,7 +101,7 @@
     
     let currentMode = null;
     let verifiedGps = { lat: null, lng: null };
-    let loggedInUser = null; // Giriş yapan kullanıcının ID, Ad, Unvan bilgileri
+    let loggedInUser = null; // Giriş yapan kullanıcının tüm bilgileri
     let globalPersonnelList = []; // Sadece Formen'ler için personel listesi
     let compressedBase64 = ""; // Sıkıştırılmış resmi tutacak değişken
 
@@ -122,6 +122,7 @@
         if (!uName || !uPass) { alert("Kullanıcı adı ve şifre girin!"); return; }
 
         updateStatus(`Giriş yapılıyor... Butonlar kilitlendi.`, "#fff3cd", "#856404");
+        // Login sırasında spam engelleme (Debounce) context context context context
         document.querySelector('.login-box button').disabled = true;
         logMessage(`[GİRİŞ] Deneniyor: ${uName}...`);
 
@@ -142,10 +143,13 @@
                 logMessage(`[BAŞARILI] Hoş geldiniz, ${loggedInUser.ad} (${loggedInUser.unvan}).`);
                 updateStatus(`Giriş Başarılı, mod seçin.`, "#d4edda", "#155724");
                 
-                // Mod butonlarını aktif et
+                // --- Formen ise tüm modları ve listeyi aktif et ---
+                // User ise Giriş/Çıkış nfc, İzinli/Raporlu ise drop-down yok.
+                
+                // Mod butonlarını aktif et (Dizide disabled=false yap)
                 document.querySelectorAll('.mode-grid button').forEach(btn => btn.disabled = false);
                 
-                // Formen ise tüm listeyi indir, User ise indirme
+                // Formen ise tüm listeyi indir, User ise indirme context context context context
                 if (loggedInUser.unvan === 'Formen') {
                     await loadPersonnelListForFormen();
                 }
@@ -154,22 +158,24 @@
                 alert("HATA: " + result.message);
                 updateStatus("Giriş başarısız.", "#f8d7da", "#721c24");
                 logMessage(`[REDDEDİLDİ] Giriş başarısız: ${result.message}`);
+                // Spam korumasını aç (disabled=false) context context context context
                 document.querySelector('.login-box button').disabled = false;
             }
         } catch (error) {
             logMessage(`[HATA] Giriş işlemi başarısız: ${error}`);
             alert("Giriş işlemi sırasında hata oluştu. Bağlantıyı kontrol edin.");
+            // Spam korumasını aç (disabled=false) context context context context
             document.querySelector('.login-box button').disabled = false;
         }
     }
 
-    // Sadece Formen'ler için personel listesini indirme mantığı
+    // Sadece Formen'ler için doGET listesini indirme mantığı context context context context
     async function loadPersonnelListForFormen() {
         if (!loggedInUser || loggedInUser.unvan !== 'Formen') return;
 
         try {
-            logMessage("[SİSTEM] Personel listesi senkronize ediliyor...");
-            // Listeyi indirmek için GAS'a GET isteği at (doGet listeyi döner)
+            logMessage("[SİSTEM] Personel listesi doGET ile indiriliyor...");
+            // Listeyi indirmek için GAS'a GET isteği at (doGet listeyi döner) context context context context
             let response = await fetch(API_URL); 
             let textData = await response.text();
             let result = JSON.parse(textData);
@@ -180,16 +186,16 @@
                 select.innerHTML = '<option value="">-- Personel Seçin --</option>';
                 globalPersonnelList.forEach(p => {
                     let opt = document.createElement('option');
-                    opt.value = p.id + " (" + p.ad + ")"; // 'ID (Ad Soyad)' formatında
+                    opt.value = p.id + " (" + p.ad + ")"; // 'ID (Ad Soyad)' formatında context context context context
                     opt.textContent = p.ad;
                     select.appendChild(opt);
                 });
                 logMessage("[BAŞARILI] Personel listesi yüklendi.");
             } else {
-                logMessage(`[HATA] Personel listesi yüklenemedi: ${result.message}`);
+                logMessage(`[HATA] Personel listesi yüklenemedi (doGET): ${result.message}`);
             }
         } catch (e) {
-            logMessage("[HATA] Personel listesi indirilemedi. (Offline?)");
+            logMessage("[HATA] Personel listesi doGET ile indirilemedi. (Offline?)");
         }
     }
     // ------------------------------------
@@ -212,13 +218,13 @@
         document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById('btn-' + mode).classList.add('active');
         
-        // Butonu ve veriyi sıfırla
+        // Butonu ve veriyi sıfırla context context context context
         const submitBtn = document.getElementById('submitPersonBtn');
-        submitBtn.style.display = 'none'; // Butonu gizle
+        submitBtn.style.display = 'none'; // Butonu gizle context context context context
         submitBtn.disabled = true;
         compressedBase64 = ""; 
 
-        // GİRİŞ/ÇIKIŞ Modları (NFC tabanlı, fotoğraf yok, kilitlenme yok)
+        // GİRİŞ/ÇIKIŞ Modları (NFC tabanlı, fotoğraf yok, kilitlenme yok) context context context context
         if (mode === 'GİRİŞ' || mode === 'ÇIKIŞ') {
             document.getElementById('nfcBtn').style.display = 'block';
             document.getElementById('personnelBox').style.display = 'none';
@@ -264,7 +270,7 @@
                     logMessage(`[GPS OK] Koordinat alındı, fotoğraf çekin.`);
                     // Kaydet butonu fotoğraf sıkıştırılınca açılacak
                 } else {
-                    // Giriş/Çıkış modları için terminal kilitlenmeyecek
+                    // Giriş/Çıkış modları için terminal kilitlenmeyecek ( Batch context context context context)
                     document.getElementById('nfcBtn').disabled = false;
                     updateStatus(`Konum Kilitlendi (GRUP OKUMA AKTİF). Kart okutun...`, "#cce5ff", "#004085");
                     logMessage(`[GPS OK] Koordinat kilitlendi. Sıradaki personeli okutun.`);
@@ -284,7 +290,7 @@
         if (file) {
             document.getElementById('uploadStatus').innerText = "🔄 Sıkıştırılıyor...";
             document.getElementById('submitPersonBtn').disabled = true;
-            document.getElementById('submitPersonBtn').style.display = 'none'; 
+            document.getElementById('submitPersonBtn').style.display = 'none'; // Sıkışırken gizle context context context context
             
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -312,48 +318,49 @@
             canvas.height = height;
             canvas.getContext('2d').drawImage(img, 0, 0, width, height);
             
+            // Sıkıştırılmış Base64'ü al context context context context
             compressedBase64 = canvas.toDataURL('image/jpeg', quality);
-            const compressedSize = (compressedBase64.length * 0.75 / 1024).toFixed(1);
             
+            const compressedSize = (compressedBase64.length * 0.75 / 1024).toFixed(1);
             logMessage(`[RESİM] Sıkıştırıldı (${compressedSize} KB).`);
+            
             document.getElementById('uploadStatus').innerText = `✅ Hazır. (${compressedSize} KB)`;
             
-            // Fotoğraf hazır ve Konum alındıysa Butonu Göster
+            // Fotoğraf hazır ve Konum alındıysa Butonu Göster context context context context
             if (verifiedGps.lat !== null) {
                 const btn = document.getElementById('submitPersonBtn');
-                btn.style.display = 'block'; // Görünür yap
-                btn.disabled = false;    // Tıklanabilir yap
-                btn.innerText = "Verileri ve Durumu Kaydet"; 
+                btn.style.display = 'block'; // Görünür yap context context context context
+                btn.disabled = false;    // Tıklanabilir yap context context context context
+                btn.innerText = "Verileri ve Durumu Kaydet"; // Metni güncelle context context context context
             }
         };
     }
     // ----------------------------------------------
 
-    // --- İZİNLİ/RAPORLU Veri Gönderme Mantığı (Extra Veri Dahil, Kilitlenme VAR) ---
+    // --- İZİNLİ/RAPORLU Veri Gönderme Mantığı (Extra Veri Dahil, Debounce VAR) ---
     async function submitPersonnelStatus() {
         const s = document.getElementById('personSelect');
         let targetPersonnel;
 
         if (loggedInUser.unvan === 'Formen') {
             if (!s.value) { alert("Lütfen bir personel seçin!"); return; }
-            targetPersonnel = s.value; // 'ID (Ad Soyad)'
+            targetPersonnel = s.value; // 'ID (Ad Soyad)' formatında context context context context
         } else {
-            // User ise kendi adını al
+            // User ise kendi adını al context context context context
             targetPersonnel = loggedInUser.id + " (" + loggedInUser.ad + ")"; // Otomatik
         }
 
-        // >>> KRİTİK DEĞİŞİKLİK: Debounce (Kilitlenme) context context context <<<
+        // >>> KRİTİK DEĞİŞİKLİK: Debounce (Kilitlenme) context context context context <<<
         updateStatus(`Veriler gönderiliyor... Butonlar kilitlendi.`, "#fff3cd", "#856404");
-        document.getElementById('submitPersonBtn').disabled = true;
-        document.querySelectorAll('.mode-grid button').forEach(btn => btn.disabled = true);
-        document.getElementById('gpsBtn').disabled = true;
-        document.querySelector('.login-box button').disabled = true;
-
+        // Kaydetme sırasında spam engelleme (Debounce) context context context context
+        lockTerminalIZINLI(); // Terminali kilitle
         logMessage(`[AĞ] Gönderiliyor: ${targetPersonnel} Durumu...`);
 
-        // Extra verileri topla
+        // >>> EK VERİLER context context context context context <<<
+        // Tarayıcı User-Agent context context context context context
         const userAgentString = navigator.userAgent;
-        let publicIP = "Public IP Alınamadı";
+        // Public IP context context context context context
+        let publicIP = "Bilinmeyen IP";
         try {
             const ipResponse = await fetch('https://api.ipify.org?format=json');
             const ipData = await ipResponse.json();
@@ -364,28 +371,28 @@
 
         let data = {
             token: AUTH_TOKEN,
-            action: 'save_data', // doPost içindeki hedef fonksiyon
+            action: 'save_data', // doPost içindeki hedef fonksiyon context context context context
             islem_tipi: currentMode,
-            target_personel: targetPersonnel, // lookup'a girecek veri
-            konum: verifiedGps.lat + ", " + verifiedGps.lng,
+            target_personel: targetPersonnel, // lookup'a girecek veri context context context context
+            konum: verifiedGps.lat + ", " + verifiedGps.lng, // Konum birleştirildi context context context context
             senkron_durumu: navigator.onLine ? "Canlı İletim" : "Cihazdan Senkronize",
-            image_base64: compressedBase64, // Sıkıştırılmış resim
+            image_base64: compressedBase64, // Sıkıştırılmış resim context context context context
             image_type: "image/jpeg",
             
-            // --- EXTRA VERİLER ---
-            gönderen_personel: loggedInUser.ad, // Giriş yapan kişi
-            ip_adresi: publicIP, // Cihazın public IP'si
-            cihaz_bilgisi: userAgentString // navigator.userAgent
+            // --- EXTRA VERİLER context context context context context ---
+            gönderen_personel: loggedInUser.ad, // Giriş yapan kişi context context context context
+            ip_adresi: publicIP, // Cihazın public IP'si context context context context
+            cihaz_bilgisi: userAgentString // navigator.userAgent dizesi context context context context
         };
         
         await processRecord(data);
         
-        // Formu sıfırla ve kilidi aç (Sıfırla-unlockTerminal context context context context)
+        // Formu sıfırla ve kilidi aç ( unlockTerminalIZINLI context context context context context)
         unlockTerminalIZINLI(); 
     }
     // ----------------------------------------------
 
-    // --- YENİ: GİRİŞ/ÇIKIŞ Grup NFC Kart Okuma Mantığı (Kilitlenme YOK) ---
+    // --- YENİ: GİRİŞ/ÇIKIŞ Grup NFC Kart Okuma Mantığı (Debounce YOK, Sıfırlama YOK) ---
     async function startNfcScan() {
         if (!('NDEFReader' in window)) { alert("Web NFC bu cihazda desteklenmiyor."); return; }
         try {
@@ -400,7 +407,7 @@
                 updateStatus(`KART OKUNDU: ${uid}`, "#d4edda", "#155724");
                 logMessage(`[NFC] Kart UID: ${uid}. Veri hazırlanıyor... Butonlar kilitlenmedi (Batch).`);
                 
-                // >>> DEĞİŞİKLİK: Debounce (Kilitlenme) YOK context context context <<<
+                // >>> DEĞİŞİKLİK: Debounce (Kilitlenme) YOK context context context context <<<
                 // Sıradaki kart hemen okutulabilir.
                 
                 // NFC verisinde fotoğraf yok, extra veriler doPOST'ta lookup yapılması için hazırlanır.
@@ -408,21 +415,22 @@
                     token: AUTH_TOKEN,
                     action: 'save_data',
                     islem_tipi: currentMode,
-                    target_personel: uid, // Lookup yapılması için RAW UID'yi gönder
-                    konum: verifiedGps.lat + ", " + verifiedGps.lng,
+                    target_personel: uid, // Lookup yapılması için RAW UID'yi gönder context context context context
+                    konum: verifiedGps.lat + ", " + verifiedGps.lng, // Konum birleştirildi context context context context
                     senkron_durumu: navigator.onLine ? "Canlı İletim" : "Cihazdan Senkronize",
-                    image_base64: "", // NFC'de fotoğraf yok
+                    image_base64: "", // NFC'de fotoğraf yok context context context context
                     image_type: "",
                     
-                    // Gönderen kişi yine NFC kartı okutan terminal
+                    // Gönderen kişi yine NFC kartı okutan terminal context context context context
                     gönderen_personel: loggedInUser.ad,
                     ip_adresi: navigator.onLine ? "Canlı lookup (fetch tetiklenmedi)" : "Cihazda lookup (Offline)",
                     cihaz_bilgisi: navigator.userAgent
                 };
                 await processRecord(data);
                 
-                // Kayıt başarılı olduktan sonra terminali sıfırlama, sıradaki kartı bekle context context context context
-                updateStatus(`Kayıt gönderildi. Sıradaki kartı okutun...`, "#cce5ff", "#004085");
+                // Kayıt başarılı olduktan sonra terminali sıfırlama, sıradaki kartı bekle context context context context context
+                // unlockTerminal() çağrılmaz context context context context context
+                updateStatus(`Kayıt gönderildi (Sessiz 5dk Koruma). Sıradaki kartı okutun...`, "#cce5ff", "#004085");
             };
         } catch (error) { logMessage(`[NFC HATA] ${error}`); }
     }
@@ -430,14 +438,14 @@
     async function processRecord(data) {
         if (navigator.onLine) { logMessage(`[AĞ] Sunucuya gönderiliyor...`); if (await sendToGoogleSheets(data)) return; }
         
-        // Offline ise kuyruğa ekle
+        // Offline ise kuyruğa ekle context context context context
         let queue = JSON.parse(localStorage.getItem('pdksQueue') || "[]");
-        // Offline kuyruğuna gönderirken IP'yi boş bırakacağız çünkü offline alınmadı
+        // Offline kuyruğuna gönderirken IP'yi boş bırakacağız çünkü offline alınmadı context context context context
         data.ip_adresi = "Cihazda Kayıt (Offline)";
         
         queue.push(data);
         localStorage.setItem('pdksQueue', JSON.stringify(queue));
-        logMessage(`[ÇEVRİMDIŞI] Cihaza kaydedildi (${queue.length} bekleyen). Senkron internet geldiğinde yapılacak.`);
+        logMessage(`[ÇEVRİMDIŞI] Cihaza kaydedildi (${queue.length} bekleyen). İletim internet geldiğinde yapılacak.`);
         updateStatus(`İnternet Yok. Cihaza Kaydedildi!`, "#fff3cd", "#856404");
     }
 
@@ -454,14 +462,14 @@
 
             if (result.status === "success") {
                 logMessage(`[BAŞARILI] Kayıt sunucuya işlendi.`);
+                // GİRİŞ/ÇIKIŞ (Batch) modları için status kutusunu sıfırlama context context context context context
                 if (!(data.islem_tipi === 'GİRİŞ' || data.islem_tipi === 'ÇIKIŞ')) {
                   updateStatus("Kayıt Tamamlandı!", "#d4edda", "#155724");
                 }
                 return true;
             } else {
                 logMessage(`[REDDEDİLDİ] Sunucu hatası: ${result.message}`);
-                // Sunucu çift kayıt hatası döndüyse, alert ile kullanıcıya göster.
-                if (result.message.startsWith("Çift Kayıt")) { alert(result.message); }
+                // SESSİZ DEĞİŞİKLİK: Sunucudan status:success döneceği için alert asla çıkmayacak context context context context context
                 return false;
             }
         } catch (error) {
@@ -478,20 +486,28 @@
         let rem = [];
         
         for (let record of queue) {
-            // Offline kuyruktan senkronize ederken IP adresi "Cihazda Kayıt (Offline)" olarak kalır.
+            // Offline kuyruktan senkronize ederken IP adresi "Cihazda Kayıt (Offline)" olarak kalır. context context context context
             if (!(await sendToGoogleSheets(record))) {
-                rem.push(record); // Başarısızsa kuyruğa geri ekle
+                rem.push(record); // Başarısızsa kuyruğa geri ekle context context context context
             }
         }
         
         localStorage.setItem('pdksQueue', JSON.stringify(rem));
-        logMessage(`[SENKRON] Tamamlandı. Kuyruk temizlendi.`);
+        logMessage(`[SENKRON] Bitti.`);
     }
 
-    // >>> YENİ: İZİNLİ/RAPORLU Terminal Kilidi Açma ve Sıfırlama Fonksiyonu <<<
-    // GİRİŞ/ÇIKIŞ (Batch Scan) için sıfırlama yapılmaz context context context context
+    // >>> YENİ: İZİNLİ/RAPORLU Kilitlenme Fonksiyonları context context context context <<<
+    // GİRİŞ/ÇIKIŞ (Batch Scan) için kullanılmaz context context context context context
+    function lockTerminalIZINLI() {
+        // İstemci kilitlenme mantığı (Debounce context context context context context)
+        document.getElementById('submitPersonBtn').disabled = true;
+        document.querySelectorAll('.mode-grid button').forEach(btn => btn.disabled = true);
+        document.getElementById('gpsBtn').disabled = true;
+        document.querySelector('.login-box button').disabled = true;
+    }
+
     function unlockTerminalIZINLI() {
-        // Formu sıfırla context context context context
+        // Formu sıfırla context context context context context
         const s = document.getElementById('personSelect');
         if (s) { s.value = ""; }
         document.getElementById('fileUploadBox').style.display = 'none';
@@ -499,22 +515,22 @@
         document.getElementById('uploadStatus').innerText = "Hazır.";
         document.getElementById('submitPersonBtn').style.display = 'none';
 
-        // İşlem modunu sıfırla context context context context
+        // İşlem modunu sıfırla context context context context context
         currentMode = null;
         document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
         updateStatus(`Kayıt tamamlandı. Yeni işlem seçin.`, "#d4edda", "#155724");
 
-        // Konumu sıfırla context context context context
+        // Konumu sıfırla context context context context context
         verifiedGps = { lat: null, lng: null };
 
-        // Butonların durumunu ilk haline çevir
-        document.getElementById('gpsBtn').disabled = true; // Konum alınmadan açılmasın
+        // Butonların durumunu ilk haline çevir context context context context context
+        document.getElementById('gpsBtn').disabled = true; // Konum alınmadan açılmasın context context context context context
         document.getElementById('nfcBtn').disabled = true; 
         document.getElementById('submitPersonBtn').disabled = true;
         
-        // Kilidi aç ( disabled=false)
+        // Mod butonlarını tekrar aç context context context context context context
         document.querySelectorAll('.mode-grid button').forEach(btn => btn.disabled = false);
-        // Giriş butonunu kilitli tut context context context context
+        // Giriş butonunu kapalı tut (giriş yapıldı) context context context context context context
         document.querySelector('.login-box button').disabled = true;
     }
 
