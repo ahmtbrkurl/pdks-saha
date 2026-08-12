@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDKS Kurumsal Portal & Saha Terminali</title>
+    <title>PDKS Saha Terminali</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
@@ -12,7 +12,7 @@
         #networkStatus { padding: 8px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 15px; background: #d4edda; color: #155724; }
         .offline { background: #f8d7da !important; color: #721c24 !important; }
 
-        /* Giriş Paneli (Login) */
+        /* Giriş Paneli */
         .login-box { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; }
         .login-box input { width: 100%; padding: 10px; margin: 5px 0 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         .login-box label { font-size: 11px; font-weight: bold; color: #495057; }
@@ -31,9 +31,10 @@
         .personnel-box select { width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #ccc; font-size: 14px; margin-bottom: 10px; }
         
         .file-upload-box { margin-top: 10px; padding: 10px; background: #f8f9fa; border: 1px dashed #6c757d; border-radius: 8px; text-align: center; display: none; }
-        .file-upload-box input { font-size: 12px; width: 100%; }
+        .file-upload-box input { font-size: 12px; width: 100%; margin-top: 5px; }
+        #uploadStatus { font-size: 11px; margin-top: 5px; color: #555; }
 
-        .log { text-align: left; background: #1e1e1e; color: #00ff00; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; height: 150px; overflow-y: auto; margin-top: 15px; }
+        .log { text-align: left; background: #1e1e1e; color: #00ff00; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; height: 140px; overflow-y: auto; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -45,10 +46,10 @@
     <!-- Bireysel Giriş Paneli -->
     <div class="login-box" id="loginBox">
         <label>Personel Kullanıcı Adı:</label>
-        <input type="text" id="usernameInput" placeholder="Örn: burak">
+        <input type="text" id="usernameInput" placeholder="Örn: ahmet">
         <label>Şifre:</label>
         <input type="password" id="passwordInput" placeholder="****">
-        <button class="action-btn" style="padding: 10px; font-size: 13px;" onclick="verifyUserLogin()">Personel Girişi Yap</button>
+        <button class="action-btn" style="padding: 10px; font-size: 13px;" onclick="verifyUserLogin()">Giriş Yap</button>
     </div>
     
     <div class="mode-grid">
@@ -69,18 +70,18 @@
             <option value="">-- Personel Seçin --</option>
         </select>
         
-        <!-- Kamera ile Belge Yükleme Alanı -->
+        <!-- Sıkıştırma Destekli Fotoğraf Yükleme -->
         <div class="file-upload-box" id="fileUploadBox">
             <label style="font-size: 11px; color: #d9534f; font-weight: bold;">⚠️ İzin / Rapor Belge Fotoğrafı Çekin:</label>
-            <input type="file" id="cameraInput" accept="image/*" capture="environment">
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleFileSelect(this)">
+            <div id="uploadStatus">Hazır.</div>
         </div>
 
-        <button class="action-btn btn-orange" id="submitPersonBtn" onclick="submitPersonnelStatus()">Belgeyi ve Durumu Kaydet</button>
+        <button class="action-btn btn-orange" id="submitPersonBtn" onclick="submitPersonnelStatus()" disabled>Belgeyi ve Durumu Kaydet</button>
     </div>
 
     <div class="log" id="logBox">
-        > Güvenli kurumsal portal başlatıldı.<br>
-        > Sistem veri tabanına bağlandı.<br>
+        > Terminal başlatıldı.<br>
     </div>
 </div>
 
@@ -92,10 +93,16 @@
     let verifiedGps = { lat: null, lng: null };
     let globalPersonnelList = [];
     let loggedInUser = null;
+    let compressedBase64 = ""; 
 
     window.addEventListener('online', updateNetworkStatus);
     window.addEventListener('offline', updateNetworkStatus);
-    window.addEventListener('load', loadPersonnelList);
+    window.addEventListener('load', initializeApp);
+
+    async function initializeApp() {
+        updateNetworkStatus();
+        await loadPersonnelList();
+    }
 
     async function loadPersonnelList() {
         try {
@@ -107,7 +114,6 @@
                 globalPersonnelList = result.personeller;
                 let select = document.getElementById('personSelect');
                 select.innerHTML = '<option value="">-- Personel Seçin --</option>';
-                
                 globalPersonnelList.forEach(p => {
                     let opt = document.createElement('option');
                     opt.value = p.id;
@@ -122,18 +128,16 @@
     }
 
     function verifyUserLogin() {
-        let uName = document.getElementById('usernameInput').value.trim();
+        let uName = document.getElementById('usernameInput').value.trim().toLowerCase();
         let pass = document.getElementById('passwordInput').value.trim();
-
         let found = globalPersonnelList.find(p => p.kullanici_adi === uName && p.sifre === pass);
         if (found) {
             loggedInUser = found;
             document.getElementById('loginBox').style.backgroundColor = '#d4edda';
             updateStatus(`Hoş geldiniz, ${found.ad}`, "#d4edda", "#155724");
-            logMessage(`[GİRİŞ BAŞARILI] ${found.ad} oturum açtı.`);
+            logMessage(`[GİRİŞ] ${found.ad}`);
         } else {
             alert("Kullanıcı adı veya şifre hatalı!");
-            logMessage("[GİRİŞ HATASI] Yetkisiz deneme.");
         }
     }
 
@@ -143,7 +147,6 @@
             statusDiv.textContent = '📡 Çevrimiçi (Online) - Güvenli Senkronizasyon';
             statusDiv.classList.remove('offline');
             syncOfflineQueue();
-            loadPersonnelList();
         } else {
             statusDiv.textContent = '⚠️ Çevrimdışı (Offline) - Veriler Şifreli Saklanacak';
             statusDiv.classList.add('offline');
@@ -159,111 +162,109 @@
             document.getElementById('nfcBtn').style.display = 'none';
             document.getElementById('personnelBox').style.display = 'block';
             document.getElementById('fileUploadBox').style.display = 'block';
-            
             if (loggedInUser) {
-                let selectElem = document.getElementById('personSelect');
-                selectElem.value = loggedInUser.id;
+                document.getElementById('personSelect').value = loggedInUser.id;
             }
+            document.getElementById('submitPersonBtn').disabled = true; 
+            compressedBase64 = ""; 
         } else {
             document.getElementById('nfcBtn').style.display = 'block';
             document.getElementById('personnelBox').style.display = 'none';
             document.getElementById('fileUploadBox').style.display = 'none';
+            document.getElementById('submitPersonBtn').disabled = true;
+            compressedBase64 = "";
         }
-
-        updateStatus(`${mode} seçildi. Konum kilitleniyor...`, "#cce5ff", "#004085");
+        updateStatus(`${mode} seçildi. Konum alınız.`, "#cce5ff", "#004085");
         document.getElementById('gpsBtn').disabled = false;
-        logMessage(`[SİSTEM] İşlem tipi ayarlandı: ${mode}`);
+        document.getElementById('nfcBtn').disabled = true;
+        verifiedGps = { lat: null, lng: null }; 
     }
 
     function getLiveLocation() {
-        if (!currentMode) {
-            alert("Lütfen önce işlem tipi seçiniz.");
-            return;
-        }
-
+        if (!currentMode) { alert("Lütfen önce işlem tipi seçiniz."); return; }
         updateStatus("GPS aranıyor...", "#fff3cd", "#856404");
         document.getElementById('gpsBtn').disabled = true;
-
-        if (!navigator.geolocation) {
-            updateStatus("Tarayıcı GPS desteklemiyor.", "#f8d7da", "#721c24");
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                verifiedGps.lat = position.coords.latitude;
-                verifiedGps.lng = position.coords.longitude;
-                
-                updateStatus(`Konum Kilitlendi (${verifiedGps.lat.toFixed(4)}, ${verifiedGps.lng.toFixed(4)})`, "#d4edda", "#155724");
-                logMessage(`[GPS OK] Koordinat yakalandı.`);
-
-                if(currentMode === 'İZİNLİ' || currentMode === 'RAPORLU') {
-                    document.getElementById('submitPersonBtn').style.display = 'block';
-                    logMessage("Belge yüklemeye hazır.");
-                } else {
-                    document.getElementById('nfcBtn').disabled = false;
-                    logMessage("Sistem kart okumaya hazır.");
-                }
-            },
-            (error) => {
-                let errDesc = error.code === 1 ? "Konum izni reddedildi." : "GPS sinyali alınamadı.";
-                updateStatus(`GPS Hatası: ${errDesc}`, "#f8d7da", "#721c24");
-                document.getElementById('gpsBtn').disabled = false;
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
+        if (!navigator.geolocation) { alert("Tarayıcı GPS desteklemiyor."); return; }
+        navigator.geolocation.getCurrentPosition((pos) => {
+            verifiedGps.lat = pos.coords.latitude;
+            verifiedGps.lng = pos.coords.longitude;
+            updateStatus(`Konum Alındı.`, "#d4edda", "#155724");
+            if(currentMode === 'İZİNLİ' || currentMode === 'RAPORLU') {
+                document.getElementById('fileUploadBox').style.display = 'block';
+                logMessage("Lütfen belge fotoğrafı çekin.");
+            } else {
+                document.getElementById('nfcBtn').disabled = false;
+                logMessage("Sistem kart okumaya hazır.");
+            }
+        }, (err) => { updateStatus(`GPS Hatası`, "#f8d7da", "#721c24"); document.getElementById('gpsBtn').disabled = false; }, {enableHighAccuracy:true});
     }
+
+    // --- YENİ: Fotoğraf Sıkıştırma Fonksiyonları ---
+    function handleFileSelect(input) {
+        const file = input.files[0];
+        if (file) {
+            document.getElementById('uploadStatus').innerText = "🔄 Sıkıştırılıyor...";
+            document.getElementById('submitPersonBtn').disabled = true;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Resmi sıkıştır (maxWidth: 1200px, kalite: 0.7)
+                compressImage(e.target.result, 1200, 0.7);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function compressImage(base64, maxWidth, quality) {
+        const img = new Image();
+        img.src = base64;
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            if (width > maxWidth) {
+                height = Math.round(height * (maxWidth / width));
+                width = maxWidth;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+            const compressedSize = (compressedBase64.length * 0.75 / 1024).toFixed(1);
+            document.getElementById('uploadStatus').innerText = `✅ Hazır. (${compressedSize} KB)`;
+            if (verifiedGps.lat) {
+                document.getElementById('submitPersonBtn').disabled = false;
+            }
+        };
+    }
+    // ----------------------------------------------
 
     async function submitPersonnelStatus() {
         let selectElem = document.getElementById('personSelect');
         let selectedVal = selectElem.value;
         let selectedText = selectElem.options[selectElem.selectedIndex].text;
+        if (!selectedVal) { alert("Lütfen bir personel seçin!"); return; }
 
-        if (!selectedVal) {
-            alert("Lütfen bir personel seçin!");
-            return;
-        }
+        updateStatus(`KAYDEDİLİYOR...`, "#fff3cd", "#856404");
+        document.getElementById('submitPersonBtn').disabled = true;
 
-        let fileInput = document.getElementById('cameraInput');
-        let base64Image = "";
-        let fileType = "image/jpeg";
-
-        let sendDataAndFinish = async (imgData) => {
-            let now = new Date();
-            let recordData = {
-                token: AUTH_TOKEN,
-                tarih_saat: now.getFullYear() + "-" + 
-                            ("0" + (now.getMonth() + 1)).slice(-2) + "-" + 
-                            ("0" + now.getDate()).slice(-2) + " " + 
-                            ("0" + now.getHours()).slice(-2) + ":" + 
-                            ("0" + now.getMinutes()).slice(-2) + ":" + 
-                            ("0" + now.getSeconds()).slice(-2),
-                islem_tipi: currentMode,
-                kart_uid: selectedVal + " (" + selectedText + ")",
-                enlem: verifiedGps.lat,
-                boylam: verifiedGps.lng,
-                senkron_durumu: navigator.onLine ? "Canlı İletim" : "Cihazdan Senkronize",
-                image_base64: imgData,
-                image_type: fileType
-            };
-
-            updateStatus(`KAYDEDİLİYOR...`, "#fff3cd", "#856404");
-            await processRecord(recordData);
-            selectElem.value = "";
-            fileInput.value = "";
+        let now = new Date();
+        let recordData = {
+            token: AUTH_TOKEN,
+            tarih_saat: now.toISOString().slice(0, 19).replace('T', ' '),
+            islem_tipi: currentMode,
+            kart_uid: selectedVal + " (" + selectedText + ")",
+            enlem: verifiedGps.lat,
+            boylam: verifiedGps.lng,
+            senkron_durumu: navigator.onLine ? "Canlı İletim" : "Cihazdan Senkronize",
+            image_base64: compressedBase64, // Sıkıştırılmış resim
+            image_type: "image/jpeg"
         };
-
-        if (fileInput.files && fileInput.files[0]) {
-            let reader = new FileReader();
-            reader.onload = async function(e) {
-                base64Image = e.target.result;
-                fileType = fileInput.files[0].type;
-                await sendDataAndFinish(base64Image);
-            };
-            reader.readAsDataURL(fileInput.files[0]);
-        } else {
-            await sendDataAndFinish("");
-        }
+        await processRecord(recordData);
+        selectElem.value = "";
+        document.getElementById('fileUploadBox').style.display = 'none';
+        compressedBase64 = "";
+        document.getElementById('uploadStatus').innerText = "Hazır.";
     }
 
     async function startNfcScan() {
@@ -287,12 +288,7 @@
                     let now = new Date();
                     let recordData = {
                         token: AUTH_TOKEN,
-                        tarih_saat: now.getFullYear() + "-" + 
-                                    ("0" + (now.getMonth() + 1)).slice(-2) + "-" + 
-                                    ("0" + now.getDate()).slice(-2) + " " + 
-                                    ("0" + now.getHours()).slice(-2) + ":" + 
-                                    ("0" + now.getMinutes()).slice(-2) + ":" + 
-                                    ("0" + now.getSeconds()).slice(-2),
+                        tarih_saat: now.toISOString().slice(0, 19).replace('T', ' '),
                         islem_tipi: currentMode,
                         kart_uid: serialNumber,
                         enlem: verifiedGps.lat,
@@ -304,15 +300,16 @@
                 };
             } catch (error) {
                 updateStatus(`NFC Hatası: ${error}`, "#f8d7da", "#721c24");
+                logMessage(`[NFC HATA] ${error}`);
             }
         } else {
-            updateStatus("Web NFC bu cihazda desteklenmiyor.", "#fff3cd", "#856404");
+            updateStatus("Web NFC bu cihazda veya tarayıcıda desteklenmiyor.", "#fff3cd", "#856404");
         }
     }
 
     async function processRecord(data) {
         if (navigator.onLine) {
-            logMessage(`[AĞ] Güvenli sunucuya ve arşive gönderiliyor...`);
+            logMessage(`[AĞ] Güvenli sunucuya gönderiliyor...`);
             let success = await sendToGoogleSheets(data);
             if (!success) {
                 saveToOfflineQueue(data);
@@ -330,17 +327,19 @@
                 body: JSON.stringify(data)
             });
             
-            let result = await response.json();
+            let textResponse = await response.text();
+            let result = JSON.parse(textResponse);
+
             if (result.status === "success") {
-                logMessage(`[BAŞARILI] Belge ve log işlendi.`);
+                logMessage(`[BAŞARILI] Kayıt işlendi.`);
                 updateStatus("Kayıt Başarıyla Tamamlandı!", "#d4edda", "#155724");
                 return true;
             } else {
-                logMessage(`[REDDEDİLDİ] Yetkisiz istek.`);
+                logMessage(`[REDDEDİLDİ] Sunucu hatası: ${result.message}`);
                 return false;
             }
         } catch (error) {
-            logMessage(`[HATA] İletim başarısız. Sıraya alınıyor.`);
+            logMessage(`[HATA] İletim başarısız: ${error}`);
             return false;
         }
     }
@@ -368,6 +367,7 @@
         }
         
         localStorage.setItem('pdksQueue', JSON.stringify(remainingQueue));
+        logMessage(`[SENKRONİZASYON] Tamamlandı.`);
     }
 
     function updateStatus(text, bg, color) {
@@ -379,7 +379,9 @@
 
     function logMessage(text) {
         let box = document.getElementById('logBox');
-        box.innerHTML += `> ${text}<br>`;
+        let now = new Date();
+        let timeStr = now.toLocaleTimeString('tr-TR');
+        box.innerHTML += `[${timeStr}] ${text}<br>`;
         box.scrollTop = box.scrollHeight;
     }
 
@@ -395,8 +397,6 @@
             setTimeout(() => { osc.stop(); }, 150);
         } catch(e) {}
     }
-
-    updateNetworkStatus();
 </script>
 
 </body>
