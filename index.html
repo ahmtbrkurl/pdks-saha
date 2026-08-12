@@ -61,7 +61,7 @@
 </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbykqVWY66uvJSushQhpuL4qBdMuOBDgi4WBElVTQfHJQJ94-QxcPZk5hqC8DYhBs6Ah/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxJj4NzhGV4-mTIurfZQi47fmbqcsUlvI3RPiPn4wy1Jz0pLFrFtU9AZljcRpiyLPYd/exec";
     
     let currentMode = null;
     let verifiedGps = { lat: null, lng: null };
@@ -73,7 +73,8 @@
     async function loadPersonnelList() {
         try {
             let response = await fetch(API_URL);
-            let result = await response.json();
+            let textData = await response.text();
+            let result = JSON.parse(textData);
             
             if (result.status === "success") {
                 let select = document.getElementById('personSelect');
