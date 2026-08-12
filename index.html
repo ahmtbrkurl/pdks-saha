@@ -7,37 +7,96 @@
     <style>
         body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
-        h3 { color: #333; }
+        h3 { color: #333; margin-top: 0; }
+        
+        /* Ağ Durumu Göstergesi */
+        #networkStatus { padding: 8px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 15px; background: #d4edda; color: #155724; }
+        .offline { background: #f8d7da !important; color: #721c24 !important; }
+
+        /* Modül Butonları */
+        .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .mode-btn { padding: 12px; font-size: 14px; font-weight: bold; border: 2px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; color: #555; transition: 0.3s; }
+        .mode-btn.active { border-color: #007bff; background: #cce5ff; color: #004085; }
+
         .status { padding: 12px; margin: 15px 0; border-radius: 8px; font-weight: bold; font-size: 14px; background: #fff3cd; color: #856404; }
-        .btn { width: 100%; padding: 15px; font-size: 16px; font-weight: bold; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        .action-btn { width: 100%; padding: 15px; font-size: 16px; font-weight: bold; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        .action-btn:disabled { background: #ccc; cursor: not-allowed; opacity: 0.6; }
         .btn-green { background: #28a745; }
-        .log { text-align: left; background: #1e1e1e; color: #00ff00; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; height: 150px; overflow-y: auto; margin-top: 15px; }
+
+        .log { text-align: left; background: #1e1e1e; color: #00ff00; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; height: 160px; overflow-y: auto; margin-top: 15px; }
     </style>
 </head>
 <body>
 
 <div class="card">
+    <div id="networkStatus">📡 Çevrimiçi (Online) - Sistem Senkronize</div>
     <h3>PDKS Saha Terminali</h3>
     
-    <div id="statusBox" class="status">Sistem Hazır</div>
+    <!-- İşlem Tipi Seçimi -->
+    <div class="mode-grid">
+        <button class="mode-btn" id="btn-GİRİŞ" onclick="setMode('GİRİŞ')">GİRİŞ</button>
+        <button class="mode-btn" id="btn-ÇIKIŞ" onclick="setMode('ÇIKIŞ')">ÇIKIŞ</button>
+        <button class="mode-btn" id="btn-İZİNLİ" onclick="setMode('İZİNLİ')">İZİNLİ</button>
+        <button class="mode-btn" id="btn-RAPORLU" onclick="setMode('RAPORLU')">RAPORLU</button>
+    </div>
+    
+    <div id="statusBox" class="status">Önce işlem tipi seçiniz.</div>
 
-    <!-- Adım 1: GPS Al ve Kilitle -->
-    <button class="btn" onclick="getLiveLocation()">1. Konum Al ve Kilitle</button>
+    <!-- Adım 1: GPS -->
+    <button class="action-btn" id="gpsBtn" onclick="getLiveLocation()" disabled>1. Konum Al ve Kilitle</button>
 
-    <!-- Adım 2: NFC Oku -->
-    <button class="btn btn-green" id="nfcBtn" onclick="startNfcScan()" disabled style="opacity: 0.5;">2. NFC Kart Okut</button>
+    <!-- Adım 2: NFC -->
+    <button class="action-btn btn-green" id="nfcBtn" onclick="startNfcScan()" disabled>2. NFC Kart Okut</button>
 
     <div class="log" id="logBox">
-        > Terminal başlatıldı. Lütfen önce konum alın.<br>
+        > Terminal başlatıldı.<br>
+        > Çevrimdışı senkronizasyon servisi aktif.<br>
     </div>
 </div>
 
 <script>
+    // Google Apps Script API URL'si
+    const API_URL = "https://script.google.com/macros/s/AKfycbyK8mSUxnlxcOvY1YDUDKFijrI1y0bhV54COvaEWzI3Pig2EH4zSd4VFdPZcH1U_irE/exec";
+    
+    let currentMode = null;
     let verifiedGps = { lat: null, lng: null };
 
+    // Ağ durumunu dinle
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
+
+    function updateNetworkStatus() {
+        const statusDiv = document.getElementById('networkStatus');
+        if (navigator.onLine) {
+            statusDiv.textContent = '📡 Çevrimiçi (Online) - Sistem Senkronize';
+            statusDiv.classList.remove('offline');
+            syncOfflineQueue(); // İnternet geldiğinde kuyruktakileri gönder
+        } else {
+            statusDiv.textContent = '⚠️ Çevrimdışı (Offline) - Veriler Cihaza Kaydedilecek';
+            statusDiv.classList.add('offline');
+        }
+    }
+
+    // İşlem Tipi Seçimi (Giriş/Çıkış vs.)
+    function setMode(mode) {
+        currentMode = mode;
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('btn-' + mode).classList.add('active');
+        
+        updateStatus(`${mode} seçildi. Konum kilitleniyor...`, "#cce5ff", "#004085");
+        document.getElementById('gpsBtn').disabled = false;
+        logMessage(`[SİSTEM] İşlem tipi ayarlandı: ${mode}`);
+    }
+
+    // Konum Alma
     function getLiveLocation() {
-        updateStatus("GPS uyduları aranıyor...", "#fff3cd", "#856404");
-        logMessage("Konum talebi gönderildi.");
+        if (!currentMode) {
+            alert("Lütfen önce işlem tipi (GİRİŞ/ÇIKIŞ) seçiniz.");
+            return;
+        }
+
+        updateStatus("GPS aranıyor...", "#fff3cd", "#856404");
+        document.getElementById('gpsBtn').disabled = true;
 
         if (!navigator.geolocation) {
             updateStatus("Tarayıcı GPS desteklemiyor.", "#f8d7da", "#721c24");
@@ -49,31 +108,22 @@
                 verifiedGps.lat = position.coords.latitude;
                 verifiedGps.lng = position.coords.longitude;
                 
-                updateStatus(`Konum Başarılı (${verifiedGps.lat.toFixed(4)}, ${verifiedGps.lng.toFixed(4)})`, "#d4edda", "#155724");
-                logMessage(`[GPS OK] ${verifiedGps.lat.toFixed(6)}, ${verifiedGps.lng.toFixed(6)}`);
+                updateStatus(`Konum Kilitlendi (${verifiedGps.lat.toFixed(4)}, ${verifiedGps.lng.toFixed(4)})`, "#d4edda", "#155724");
+                logMessage(`[GPS OK] Koordinat yakalandı.`);
 
-                let nfcButton = document.getElementById('nfcBtn');
-                nfcButton.disabled = false;
-                nfcButton.style.opacity = "1";
-                logMessage("Konum kilitlendi! Şimdi NFC kart okutabilirsiniz.");
+                document.getElementById('nfcBtn').disabled = false;
+                logMessage("Sistem kart okumaya hazır.");
             },
             (error) => {
-                let errDesc = error.message;
-                if(error.code === 1) errDesc = "Konum izni reddedildi.";
-                else if(error.code === 2) errDesc = "GPS sinyali alınamadı.";
-                else if(error.code === 3) errDesc = "Zaman aşımı.";
-
+                let errDesc = error.code === 1 ? "Konum izni reddedildi." : "GPS sinyali alınamadı.";
                 updateStatus(`GPS Hatası: ${errDesc}`, "#f8d7da", "#721c24");
-                logMessage(`Hata Kod ${error.code}: ${errDesc}`);
+                document.getElementById('gpsBtn').disabled = false;
             },
-            { 
-                enableHighAccuracy: true, 
-                timeout: 10000, 
-                maximumAge: 0 
-            }
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     }
 
+    // NFC Tarama ve Kayıt İşlemi
     async function startNfcScan() {
         if (verifiedGps.lat === null) {
             alert("Önce konum almanız gerekiyor!");
@@ -84,31 +134,113 @@
             try {
                 const ndef = new NDEFReader();
                 await ndef.scan();
-                updateStatus("NFC Aktif! Kartı telefona dokundurun...", "#cce5ff", "#004085");
-                logMessage("NFC dinlemede...");
+                updateStatus(`NFC Aktif! Kartı dokundurun... (${currentMode})`, "#cce5ff", "#004085");
 
-                ndef.onreading = event => {
+                ndef.onreading = async (event) => {
                     let serialNumber = event.serialNumber;
                     playBip();
                     
-                    updateStatus(`KART OKUNDU! UID: ${serialNumber}`, "#d4edda", "#155724");
-                    logMessage(`[OKUTULDU] Kart: ${serialNumber} | Konum: ${verifiedGps.lat.toFixed(6)}, ${verifiedGps.lng.toFixed(6)}`);
-                };
+                    updateStatus(`KART OKUNDU: ${serialNumber}`, "#d4edda", "#155724");
+                    
+                    // Veri Paketini Hazırla
+                    let now = new Date();
+                    let recordData = {
+                        tarih_saat: now.getFullYear() + "-" + 
+                                    ("0" + (now.getMonth() + 1)).slice(-2) + "-" + 
+                                    ("0" + now.getDate()).slice(-2) + " " + 
+                                    ("0" + now.getHours()).slice(-2) + ":" + 
+                                    ("0" + now.getMinutes()).slice(-2) + ":" + 
+                                    ("0" + now.getSeconds()).slice(-2),
+                        islem_tipi: currentMode,
+                        kart_uid: serialNumber,
+                        enlem: verifiedGps.lat,
+                        boylam: verifiedGps.lng,
+                        senkron_durumu: navigator.onLine ? "Canlı İletim" : "Cihazdan Senkronize"
+                    };
 
-                ndef.onreadingerror = () => {
-                    logMessage("NFC okuma hatası, tekrar dokundurun.");
+                    await processRecord(recordData);
                 };
-
             } catch (error) {
-                updateStatus(`NFC Başlatılamadı: ${error}`, "#f8d7da", "#721c24");
-                logMessage(`NFC Hata detayı: ${error}`);
+                updateStatus(`NFC Hatası: ${error}`, "#f8d7da", "#721c24");
             }
         } else {
-            updateStatus("Web NFC bu tarayıcıda desteklenmiyor.", "#fff3cd", "#856404");
-            logMessage("Web NFC API desteklenmiyor.");
+            updateStatus("Web NFC bu cihazda desteklenmiyor.", "#fff3cd", "#856404");
         }
     }
 
+    // Veriyi İşleme (Online ise Gönder, Offline ise Kaydet)
+    async function processRecord(data) {
+        if (navigator.onLine) {
+            logMessage(`[AĞ] Sunucuya gönderiliyor: ${data.kart_uid}`);
+            let success = await sendToGoogleSheets(data);
+            if (!success) {
+                saveToOfflineQueue(data);
+            }
+        } else {
+            saveToOfflineQueue(data);
+        }
+    }
+
+    // Fetch API ile Google Sheets'e İletim (CORS By-Pass yöntemiyle)
+    async function sendToGoogleSheets(data) {
+        try {
+            let response = await fetch(API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8"
+                },
+                body: JSON.stringify(data)
+            });
+            
+            let result = await response.json();
+            if (result.status === "success") {
+                logMessage(`[BAŞARILI] Kayıt işlendi: ${data.kart_uid}`);
+                return true;
+            } else {
+                throw new Error("Sunucu reddetti.");
+            }
+        } catch (error) {
+            logMessage(`[HATA] İletim başarısız. Çevrimdışı sıraya alınıyor.`);
+            return false;
+        }
+    }
+
+    // Çevrimdışı Kuyruğa Kayıt
+    function saveToOfflineQueue(data) {
+        let queue = JSON.parse(localStorage.getItem('pdksQueue') || "[]");
+        queue.push(data);
+        localStorage.setItem('pdksQueue', JSON.stringify(queue));
+        logMessage(`[ÇEVRİMDIŞI] Cihaz hafızasına kaydedildi (${queue.length} bekleyen)`);
+        updateStatus(`İnternet Yok. Cihaza Kaydedildi!`, "#fff3cd", "#856404");
+    }
+
+    // Bekleyen Verileri Senkronize Etme (Handshake)
+    async function syncOfflineQueue() {
+        let queue = JSON.parse(localStorage.getItem('pdksQueue') || "[]");
+        if (queue.length === 0) return;
+
+        logMessage(`[SENKRONİZASYON] ${queue.length} adet bekleyen kayıt iletiliyor...`);
+        
+        let remainingQueue = [];
+        
+        for (let i = 0; i < queue.length; i++) {
+            let success = await sendToGoogleSheets(queue[i]);
+            if (!success) {
+                // Eğer yine başarısız olursa kuyrukta tutmaya devam et
+                remainingQueue.push(queue[i]);
+            }
+        }
+        
+        localStorage.setItem('pdksQueue', JSON.stringify(remainingQueue));
+        
+        if (remainingQueue.length === 0) {
+            logMessage(`[SENKRONİZASYON TAMAM] Tüm veriler Google Sheets'e aktarıldı.`);
+        } else {
+            logMessage(`[UYARI] ${remainingQueue.length} kayıt iletilemedi, sonra tekrar denenecek.`);
+        }
+    }
+
+    // Arayüz ve Ses Fonksiyonları
     function updateStatus(text, bg, color) {
         let box = document.getElementById('statusBox');
         box.innerText = text;
@@ -134,6 +266,9 @@
             setTimeout(() => { osc.stop(); }, 150);
         } catch(e) {}
     }
+
+    // İlk açılışta ağ kontrolü
+    updateNetworkStatus();
 </script>
 
 </body>
