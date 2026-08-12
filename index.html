@@ -88,10 +88,10 @@
                 });
                 logMessage("[SİSTEM] Personel listesi Google Sheets'ten yüklendi.");
             } else {
-                throw new Error("Liste alınamadı.");
+                logMessage("[HATA] " + (result.message || "Liste alınamadı."));
             }
         } catch (e) {
-            logMessage("[HATA] Personel listesi yüklenemedi.");
+            logMessage("[HATA] Personel listesi bağlantı kurulamadı.");
         }
     }
 
