@@ -64,6 +64,36 @@ h3{margin:0;color:#333;font-size:20px}
   .legend-green{background:#9cff9c}.legend-yellow{background:#fff176}
   .legend-blue{background:#9ec5fe}.legend-orange{background:#ffb36b}
 }
+
+        /* Yazdırmada tablo arka plan renklerini koru */
+        #printArea, #printArea * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        @media print {
+            #printArea {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .row-sahada td {
+                background-color: #9cff9c !important;
+            }
+
+            .row-cikis td {
+                background-color: #fff176 !important;
+            }
+
+            .row-izinli td {
+                background-color: #9ec5fe !important;
+            }
+
+            .row-raporlu td {
+                background-color: #ffb36b !important;
+            }
+        }
+
 </style>
 </head>
 <body>
@@ -722,7 +752,7 @@ async function loadReport(){
 
     currentReport=result;
     buildPrintArea(result);
-    logMessage(`[REPORT] ${result.rows.length} rows.`);
+    logMessage(`[RAPOR] ${result.rows.length} kayıt hazır.`);
   }catch(e){
     alert(e.message);
   }
