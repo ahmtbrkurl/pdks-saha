@@ -253,6 +253,7 @@ async function runNfcWorkerV6(){
     while(nfcQueueV6.length&&navigator.onLine){
       const record=nfcQueueV6[0];
       try{
+        logMessage(`[NFC SYNC] Gönderiliyor UID=${record.nfc_uid||"YOK"}`);
         await apiPost(record);
         nfcQueueV6.shift();
         saveNfcQueueV6();
@@ -278,11 +279,19 @@ async function runNfcWorkerV6(){
 
 function createFastNfcRecordV6(uid){
   return {
-    token:AUTH_TOKEN, action:"save_data", islem_tipi:currentMode,
-    nfc_uid:uid, target_personel_id:"",
+    // V6.3 kritik düzeltme:
+    // Backend save_data artık session doğrulaması yapıyor.
+    // Fast NFC kuyruğu da normal kayıtlar gibi aktif oturum tokenını göndermeli.
+    action:"save_data",
+    session:sessionToken,
+    token:AUTH_TOKEN,
+    islem_tipi:currentMode,
+    nfc_uid:uid,
+    target_personel_id:"",
     konum:verifiedGps.lat+", "+verifiedGps.lng,
     senkron_durumu:navigator.onLine?"Canlı İletim":"Cihazdan Senkronize",
-    image_base64:"", image_type:"",
+    image_base64:"",
+    image_type:"",
     gönderen_personel:loggedInUser.ad,
     ip_adresi:cachedPublicIPv6||"IP Alınamadı",
     cihaz_bilgisi:navigator.userAgent,
