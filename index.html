@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>v1-PDKS Saha Terminali</title>
+<title>PDKS Saha Terminali</title>
 <style>
 *{box-sizing:border-box}
 body{font-family:Arial,sans-serif;background:#f0f2f5;margin:0;padding:15px;text-align:center;color:#222}
@@ -100,7 +100,7 @@ h3{margin:0;color:#333;font-size:20px}
 
 <div class="card">
   <div class="topbar">
-    <h3 id="title">v1-PDKS Saha Terminali</h3>
+    <h3 id="title">PDKS Saha Terminali</h3>
     <select id="languageSelect" class="lang" onchange="setLanguage(this.value)">
       <option value="tr">🇹🇷 Türkçe</option>
       <option value="ru">🇷🇺 Русский</option>
@@ -206,7 +206,18 @@ function loadNfcQueueV6(){
 }
 
 function saveNfcQueueV6(){
-  localStorage.setItem(NFC_QUEUE_KEY_V6,JSON.stringify(nfcQueueV6));
+  // LocalStorage başarısız olsa bile NFC akışı durmamalı.
+  // Ana kuyruk RAM'de tutulur; persistence sadece ek güvenliktir.
+  try{
+    localStorage.setItem(NFC_QUEUE_KEY_V6,JSON.stringify(nfcQueueV6));
+  }catch(e){
+    logError(
+      `[NFC QUEUE STORAGE] ${e&&e.message?e.message:e}`,
+      "QUEUE_STORAGE_ERROR",
+      currentMode||"",
+      ""
+    );
+  }
   updateNfcQueueIndicatorV6();
 }
 
@@ -260,6 +271,13 @@ async function runNfcWorkerV6(){
         logMessage(`[NFC SYNC] Kayıt gönderildi. Kalan=${nfcQueueV6.length}`);
       }catch(e){
         const msg=e&&e.message?e.message:String(e);
+        logError(
+          `[NFC SYNC ERROR] ${msg}`,
+          e&&e.code ? e.code : "NFC_SYNC_ERROR",
+          record.islem_tipi,
+          record.nfc_uid||""
+        );
+
         if(isPermanentNfcErrorV6(e)){
           nfcQueueV6.shift();
           saveNfcQueueV6();
@@ -838,14 +856,24 @@ async function startNfcScan(){
 
       playBip();
 
-      const data=createFastNfcRecordV6(uid);
+      try{
+        const data=createFastNfcRecordV6(uid);
 
-      // Anında lokal kuyruğa ekle.
-      queueNfcRecordV6(data);
+        // Anında lokal kuyruğa ekle.
+        queueNfcRecordV6(data);
 
-      logMessage(
-        `[NFC] UID=${uid} → KUYRUKLANDI. Bekleyen=${nfcQueueV6.length}`
-      );
+        logMessage(
+          `[NFC] UID=${uid} → KUYRUKLANDI. Bekleyen=${nfcQueueV6.length}`
+        );
+      }catch(e){
+        const msg=e&&e.message?e.message:String(e);
+        logError(
+          `[NFC CLIENT ERROR] ${msg}`,
+          "NFC_CLIENT_ERROR",
+          currentMode,
+          uid
+        );
+      }
 
       updateStatus(
         `KART OKUNDU: ${uid} — Sıradaki kartı okutabilirsiniz.`,
