@@ -108,7 +108,7 @@ h3{margin:0;color:#333;font-size:20px}
     </select>
   </div>
 
-  <div id="networkStatus">📡 Çevrimiçi</div>
+  <div id="networkStatus">📡 Çevrimiçi</div><div id="nfcQueueIndicatorV6" style="font-size:11px;color:#555;margin:-8px 0 8px 0;">Bekleyen NFC: 0</div>
 
   <div class="login-box" id="loginBox">
     <label id="usernameLabel">Kullanıcı Adı:</label>
@@ -188,6 +188,102 @@ let loggedInUser = null;
 let currentMode = null;
 let verifiedGps = {lat:null,lng:null};
 let compressedBase64 = "";
+let nfcQueueV6=[];
+let nfcWorkerRunningV6=false;
+let cachedPublicIPv6="";
+let cachedPublicIPAtV6=0;
+const NFC_QUEUE_KEY_V6="pdksNfcFastQueueV6";
+const NFC_WORKER_DELAY_V6=25;
+const PUBLIC_IP_CACHE_MS_V6=30*60*1000;
+
+function loadNfcQueueV6(){
+  try{
+    nfcQueueV6=JSON.parse(localStorage.getItem(NFC_QUEUE_KEY_V6)||"[]");
+    if(!Array.isArray(nfcQueueV6)) nfcQueueV6=[];
+  }catch(e){nfcQueueV6=[];}
+  updateNfcQueueIndicatorV6();
+}
+
+function saveNfcQueueV6(){
+  localStorage.setItem(NFC_QUEUE_KEY_V6,JSON.stringify(nfcQueueV6));
+  updateNfcQueueIndicatorV6();
+}
+
+function updateNfcQueueIndicatorV6(){
+  const el=document.getElementById("nfcQueueIndicatorV6");
+  if(el) el.textContent=`Bekleyen NFC: ${nfcQueueV6.length}`;
+}
+
+function isPermanentNfcErrorV6(err){
+  const code=String(err&&err.code||"").toUpperCase();
+  return ["FORBIDDEN","NFC_UNKNOWN","NFC_UID_MISSING","TARGET_MISSING","TARGET_NOT_FOUND","SESSION_INVALID"].includes(code);
+}
+
+async function getCachedPublicIPv6(force=false){
+  const now=Date.now();
+  if(!force&&cachedPublicIPv6&&now-cachedPublicIPAtV6<PUBLIC_IP_CACHE_MS_V6)
+    return cachedPublicIPv6;
+  try{
+    const r=await fetch("https://api.ipify.org?format=json",{cache:"no-store"});
+    const j=await r.json();
+    if(j&&j.ip){
+      cachedPublicIPv6=j.ip;
+      cachedPublicIPAtV6=Date.now();
+    }
+  }catch(e){}
+  return cachedPublicIPv6||"Bilinmeyen IP";
+}
+
+function queueNfcRecordV6(data){
+  nfcQueueV6.push(data);
+  saveNfcQueueV6();
+  runNfcWorkerV6();
+}
+
+async function runNfcWorkerV6(){
+  if(nfcWorkerRunningV6||!navigator.onLine||!nfcQueueV6.length) return;
+  nfcWorkerRunningV6=true;
+  try{
+    while(nfcQueueV6.length&&navigator.onLine){
+      const record=nfcQueueV6[0];
+      try{
+        await apiPost(record);
+        nfcQueueV6.shift();
+        saveNfcQueueV6();
+        logMessage(`[NFC SYNC] Kayıt gönderildi. Kalan=${nfcQueueV6.length}`);
+      }catch(e){
+        const msg=e&&e.message?e.message:String(e);
+        if(isPermanentNfcErrorV6(e)){
+          nfcQueueV6.shift();
+          saveNfcQueueV6();
+          logError(`[NFC SYNC DISCARDED] ${msg}`,"SYNC_DISCARDED",record.islem_tipi,record.nfc_uid||"");
+          continue;
+        }
+        logError(`[NFC SYNC NETWORK] ${msg}`,"NETWORK_ERROR",record.islem_tipi,record.nfc_uid||"");
+        break;
+      }
+      await new Promise(r=>setTimeout(r,NFC_WORKER_DELAY_V6));
+    }
+  }finally{
+    nfcWorkerRunningV6=false;
+    updateNfcQueueIndicatorV6();
+  }
+}
+
+function createFastNfcRecordV6(uid){
+  return {
+    token:AUTH_TOKEN, action:"save_data", islem_tipi:currentMode,
+    nfc_uid:uid, target_personel_id:"",
+    konum:verifiedGps.lat+", "+verifiedGps.lng,
+    senkron_durumu:navigator.onLine?"Canlı İletim":"Cihazdan Senkronize",
+    image_base64:"", image_type:"",
+    gönderen_personel:loggedInUser.ad,
+    ip_adresi:cachedPublicIPv6||"IP Alınamadı",
+    cihaz_bilgisi:navigator.userAgent,
+    client_record_id:"NFC-"+Date.now()+"-"+Math.random().toString(36).slice(2,8)
+  };
+}
+
 let globalPersonnelList = [];
 let nfcReader = null;
 let nfcScanStarted = false;
@@ -298,6 +394,9 @@ window.addEventListener("offline",updateNetworkStatus);
 window.addEventListener("load",initializeApp);
 
 function initializeApp(){
+  loadNfcQueueV6();
+  getCachedPublicIPv6(false);
+  runNfcWorkerV6();
   const lang=localStorage.getItem(STORAGE_LANG_KEY)||"tr";
   document.getElementById("languageSelect").value=lang;
   applyLanguage();
@@ -677,54 +776,38 @@ function logError(text,errorType="CLIENT_ERROR",actionName="",uid=""){
 
 
 async function startNfcScan(){
-  if(!("NDEFReader" in window)){
-    alert(tr("nfcUnsupported"));
-    return;
-  }
-
-  // Web NFC aynı NDEFReader üzerinde ikinci bir scan() başlatmaya izin vermez.
-  // Kullanıcı butona tekrar bassa bile mevcut taramayı yeniden başlatma.
-  if(nfcScanStarted || nfcScanStarting){
-    updateStatus(tr("nfcActive"),"#cce5ff","#004085");
-    logMessage("[NFC] Tarama zaten aktif; yeni scan() başlatılmadı.");
-    return;
-  }
-
-  nfcScanStarting=true;
+  if(!("NDEFReader" in window)){alert("Web NFC bu cihazda desteklenmiyor.");return;}
+  if(!currentMode||(currentMode!=="GİRİŞ"&&currentMode!=="ÇIKIŞ")){alert("Önce GİRİŞ veya ÇIKIŞ seçin.");return;}
+  if(verifiedGps.lat===null){alert("Önce konum alın.");return;}
 
   try{
-    if(!nfcReader){
-      nfcReader=new NDEFReader();
-      nfcReader.onreading=handleNfcReading;
-      nfcReader.onreadingerror=()=>{
-        logError("[NFC] Kart okunamadı; tekrar deneyin.","NFC_READ_ERROR",currentMode,"");
-      };
-    }
+    const ndef=new NDEFReader();
+    await ndef.scan();
+    getCachedPublicIPv6(false);
 
-    await nfcReader.scan();
+    updateStatus(`${currentMode} - NFC aktif. Kartları seri şekilde okutabilirsiniz.`,"#cce5ff","#004085");
+    logMessage("[NFC] Tarama aktif. Seri kart okuma hazır.");
 
-    nfcScanStarted=true;
-    nfcScanStarting=false;
+    ndef.onreading=(event)=>{
+      const uid=String(event.serialNumber||"").trim();
+      if(!uid){
+        logError("[NFC] UID alınamadı.","NFC_UID_MISSING",currentMode,"");
+        return;
+      }
 
-    updateStatus(tr("nfcActive"),"#cce5ff","#004085");
-    logMessage("[NFC] Tarama aktif. Kart okutabilirsiniz.");
+      playBip();
+      queueNfcRecordV6(createFastNfcRecordV6(uid));
+      logMessage(`[NFC] UID=${uid} → kuyruklandı. Bekleyen=${nfcQueueV6.length}`);
+      updateStatus(`KART OKUNDU: ${uid} — Sıradaki kartı okutabilirsiniz.`,"#d4edda","#155724");
+    };
 
-  }catch(e){
-    nfcScanStarting=false;
+    ndef.onreadingerror=()=>{
+      logError("[NFC] Kart okuma hatası.","NFC_READ_ERROR",currentMode,"");
+    };
 
-    // Chrome/Android bazen ikinci scan() çağrısında bu hatayı üretir.
-    // Mevcut tarama zaten çalışıyorsa bunu kullanıcı hatası olarak gösterme.
-    const msg=String(e && e.message || e);
-
-    if(msg.toLowerCase().includes("scan() operation is ongoing")){
-      nfcScanStarted=true;
-      updateStatus(tr("nfcActive"),"#cce5ff","#004085");
-      logMessage("[NFC] Tarama zaten aktif; mevcut tarama kullanılmaya devam ediyor.");
-      return;
-    }
-
-    logError("[NFC ERROR] "+msg,"NFC_SCAN_ERROR",currentMode,"");
-    alert(msg||"NFC error");
+    runNfcWorkerV6();
+  }catch(error){
+    logError(`[NFC HATA] ${error}`,"NFC_ERROR",currentMode||"","");
   }
 }
 
@@ -1125,6 +1208,7 @@ function getTodayString(){
 }
 
 function updateNetworkStatus(){
+  if(navigator.onLine)setTimeout(runNfcWorkerV6,50);
   const el=document.getElementById("networkStatus");
   el.textContent=navigator.onLine?tr("online"):tr("offline");
   el.classList.toggle("offline",!navigator.onLine);
