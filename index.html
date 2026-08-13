@@ -274,8 +274,12 @@ function applyLanguage(){
   document.getElementById("loginBtn").textContent=tr("login");
   document.getElementById("gpsBtn").textContent=tr("location");
   document.getElementById("nfcBtn").textContent=tr("nfc");
-  document.getElementById("btn-İZİNLİ").textContent=tr("leave");
-  document.getElementById("btn-RAPORLU").textContent=tr("sick");
+
+  // İşlem butonları da seçilen dile göre çevrilir.
+  document.getElementById("btn-GİRİŞ").textContent=tr("actionEntry")+" (NFC)";
+  document.getElementById("btn-ÇIKIŞ").textContent=tr("actionExit")+" (NFC)";
+  document.getElementById("btn-İZİNLİ").textContent=tr("actionLeave");
+  document.getElementById("btn-RAPORLU").textContent=tr("actionSick");
   document.getElementById("personSelectLabel").textContent=tr("personSelect");
   document.getElementById("userPanelText").textContent=tr("userPanel");
   document.getElementById("photoLabel").textContent=tr("photo");
@@ -418,7 +422,12 @@ function setMode(mode){
     document.getElementById("nfcBtn").style.display="block";
     document.getElementById("personnelBox").style.display="none";
     document.getElementById("fileUploadBox").style.display="none";
-    updateStatus(mode+" - "+tr("location"),"#cce5ff","#004085");
+
+    const translatedMode =
+      mode==="GİRİŞ" ? tr("actionEntry") :
+      tr("actionExit");
+
+    updateStatus(translatedMode+" - "+tr("location"),"#cce5ff","#004085");
   }else{
     document.getElementById("nfcBtn").style.display="none";
     document.getElementById("personnelBox").style.display="block";
@@ -431,7 +440,11 @@ function setMode(mode){
       document.getElementById("formenPanel").style.display="none";
       document.getElementById("userPanel").style.display="block";
     }
-    updateStatus(mode+" - "+tr("location"),"#cce5ff","#004085");
+    const translatedMode =
+      mode==="İZİNLİ" ? tr("actionLeave") :
+      tr("actionSick");
+
+    updateStatus(translatedMode+" - "+tr("location"),"#cce5ff","#004085");
   }
 
   document.getElementById("gpsBtn").disabled=false;
