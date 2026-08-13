@@ -798,12 +798,29 @@ async function startNfcScan(){
   }
 
   try{
-    // Reader'ı global tutuyoruz; bazı Android/Chrome sürümlerinde
-    // lokal nesnenin yaşam döngüsü event teslimini etkileyebiliyor.
+    // V6.2: Kullanıcının çalışan V5 akışındaki Web NFC modelini koruyoruz.
+    // Reader referansı global tutuluyor ama event property doğrudan atanıyor.
     nfcReaderV6=new NDEFReader();
 
-    const onReading=(event)=>{
+    // Önceden kuyruğa girmiş kayıtlar arka planda gönderilsin.
+    getCachedPublicIPv6(false);
+    runNfcWorkerV6();
+
+    await nfcReaderV6.scan();
+
+    updateStatus(
+      `${currentMode} - NFC aktif. Kartları seri şekilde okutabilirsiniz.`,
+      "#cce5ff","#004085"
+    );
+    logMessage("[NFC] Tarama aktif. Seri kart okuma hazır.");
+
+    // ÖNEMLİ:
+    // V5'te çalışan event modelini aynen koruyoruz.
+    // Burada await YOK; kart okuma sunucuya bağlı değil.
+    nfcReaderV6.onreading=(event)=>{
       const uid=String(event.serialNumber||"").trim();
+
+      logMessage(`[NFC EVENT] Kart event alındı. UID=${uid||"YOK"}`);
 
       if(!uid){
         logError("[NFC] UID alınamadı.","NFC_UID_MISSING",currentMode,"");
@@ -812,9 +829,10 @@ async function startNfcScan(){
 
       playBip();
 
-      // KRİTİK: hiçbir await yok.
-      // Kart anında lokal kuyruğa alınır.
-      queueNfcRecordV6(createFastNfcRecordV6(uid));
+      const data=createFastNfcRecordV6(uid);
+
+      // Anında lokal kuyruğa ekle.
+      queueNfcRecordV6(data);
 
       logMessage(
         `[NFC] UID=${uid} → KUYRUKLANDI. Bekleyen=${nfcQueueV6.length}`
@@ -822,12 +840,11 @@ async function startNfcScan(){
 
       updateStatus(
         `KART OKUNDU: ${uid} — Sıradaki kartı okutabilirsiniz.`,
-        "#d4edda",
-        "#155724"
+        "#d4edda","#155724"
       );
     };
 
-    const onReadingError=(event)=>{
+    nfcReaderV6.onreadingerror=()=>{
       logError(
         "[NFC READ ERROR] Kart okunamadı.",
         "NFC_READ_ERROR",
@@ -836,28 +853,9 @@ async function startNfcScan(){
       );
     };
 
-    // Event listener'ları scan() ÖNCESİNDE bağlıyoruz.
-    nfcReaderV6.addEventListener("reading",onReading);
-    nfcReaderV6.addEventListener("readingerror",onReadingError);
-
-    await nfcReaderV6.scan();
-
-    getCachedPublicIPv6(false);
-
-    updateStatus(
-      `${currentMode} - NFC aktif. Kartları seri şekilde okutabilirsiniz.`,
-      "#cce5ff",
-      "#004085"
-    );
-
-    logMessage("[NFC] Tarama aktif. Seri kart okuma hazır.");
-
-    // Önceden kuyrukta kalan kayıt varsa arka planda gönder.
-    runNfcWorkerV6();
-
   }catch(error){
     logError(
-      `[NFC HATA] ${error && error.message ? error.message : error}`,
+      `[NFC HATA] ${error&&error.message?error.message:error}`,
       "NFC_ERROR",
       currentMode||"",
       ""
