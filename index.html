@@ -805,7 +805,25 @@ async function processRecord(data){
       const msg=e && e.message ? e.message : String(e);
 
       if(isNonRetryableError(e)){
-        logError(`[SERVER REJECTED] ${msg}`,"SERVER_REJECTED",data.islem_tipi,data.nfc_uid||"");
+        const code=String(e && e.code || "").toUpperCase();
+
+        if(code==="FORBIDDEN" || code==="NFC_UNKNOWN"){
+          logError(
+            `[SECURITY] Yetkisiz NFC denemesi. UID=${data.nfc_uid||"YOK"} - ${msg}`,
+            "SECURITY",
+            data.islem_tipi,
+            data.nfc_uid||""
+          );
+        }else{
+          logError(
+            `[SERVER REJECTED] ${msg}`,
+            "SERVER_REJECTED",
+            data.islem_tipi,
+            data.nfc_uid||""
+          );
+        }
+
+        // Kalıcı yetki/veri hataları tekrar kuyruğa alınmaz.
         return false;
       }
 
