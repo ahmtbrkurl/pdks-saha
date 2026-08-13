@@ -211,7 +211,9 @@ const T = {
     offlineSaved:"İnternet yok. Kayıt cihaza alındı.", sessionExpired:"Oturum süresi doldu. Lütfen tekrar giriş yapın.",
     noData:"Bu tarih için kayıt bulunamadı.", printTitle:"PDKS SAHA PERSONEL RAPORU",
     printTime:"Rapor oluşturma zamanı", legendGreen:"Sahada", legendYellow:"Çıkış", legendBlue:"İzinli", legendOrange:"Raporlu",
-    invalidDate:"Geçersiz tarih.", today:"Bugün", unknown:"Bilinmiyor"
+    invalidDate:"Geçersiz tarih.", today:"Bugün", unknown:"Bilinmiyor",
+    actionEntry:"GİRİŞ", actionExit:"ÇIKIŞ", actionLeave:"İZİNLİ", actionSick:"RAPORLU",
+    reportDateHeader:"Seçilen tarih", reportActionHeader:"İşlem Tipi", reportPersonHeader:"Personel_ID_Ad_Soyad"
   },
   ru:{
     title:"Терминал ПДКС", online:"📡 Онлайн - Безопасная синхронизация", offline:"⚠️ Офлайн - Данные сохранены на устройстве",
@@ -227,7 +229,9 @@ const T = {
     offlineSaved:"Нет интернета. Запись сохранена на устройстве.", sessionExpired:"Сессия истекла. Войдите снова.",
     noData:"За эту дату записей нет.", printTitle:"ОТЧЕТ О СОТРУДНИКАХ НА ПЛОЩАДКЕ",
     printTime:"Время формирования", legendGreen:"На площадке", legendYellow:"Выход", legendBlue:"Отпуск", legendOrange:"Больничный",
-    invalidDate:"Неверная дата.", today:"Сегодня", unknown:"Неизвестно"
+    invalidDate:"Неверная дата.", today:"Сегодня", unknown:"Неизвестно",
+    actionEntry:"ВХОД", actionExit:"ВЫХОД", actionLeave:"ОТПУСК", actionSick:"БОЛЬНИЧНЫЙ",
+    reportDateHeader:"Выбранная дата", reportActionHeader:"Тип операции", reportPersonHeader:"ID_Сотрудник_ФИО"
   },
   en:{
     title:"PDKS Field Terminal", online:"📡 Online - Secure synchronization", offline:"⚠️ Offline - Data stored on device",
@@ -243,7 +247,9 @@ const T = {
     offlineSaved:"No internet. Record saved on the device.", sessionExpired:"Session expired. Please log in again.",
     noData:"No records for this date.", printTitle:"PDKS FIELD PERSONNEL REPORT",
     printTime:"Report generated", legendGreen:"On site", legendYellow:"Checked out", legendBlue:"Leave", legendOrange:"Sick leave",
-    invalidDate:"Invalid date.", today:"Today", unknown:"Unknown"
+    invalidDate:"Invalid date.", today:"Today", unknown:"Unknown",
+    actionEntry:"ENTRY", actionExit:"EXIT", actionLeave:"LEAVE", actionSick:"SICK LEAVE",
+    reportDateHeader:"Selected date", reportActionHeader:"Action Type", reportPersonHeader:"Personnel_ID_Name"
   }
 };
 
@@ -942,6 +948,17 @@ async function loadReport(){
   }
 }
 
+function translateAction(action){
+  const a=String(action||"").trim();
+
+  if(a==="GİRİŞ") return tr("actionEntry");
+  if(a==="ÇIKIŞ") return tr("actionExit");
+  if(a==="İZİNLİ") return tr("actionLeave");
+  if(a==="RAPORLU") return tr("actionSick");
+
+  return a;
+}
+
 function buildPrintArea(report){
   const area=document.getElementById("printArea");
   area.textContent="";
@@ -970,7 +987,7 @@ function buildPrintArea(report){
 
   const thead=document.createElement("thead");
   const hr=document.createElement("tr");
-  [tr("selected").replace(":",""),"İşlem Tipi","Personel_ID_Ad_Soyad"].forEach(x=>{
+  [tr("reportDateHeader"),tr("reportActionHeader"),tr("reportPersonHeader")].forEach(x=>{
     const th=document.createElement("th");
     th.textContent=x;
     hr.appendChild(th);
@@ -988,7 +1005,7 @@ function buildPrintArea(report){
     if(row.status==="izinli")trEl.className="row-izinli";
     if(row.status==="raporlu")trEl.className="row-raporlu";
 
-    [row.tarih_saat,row.islem_tipi,row.personel].forEach(v=>{
+    [row.tarih_saat,translateAction(row.islem_tipi),row.personel].forEach(v=>{
       const td=document.createElement("td");
       td.textContent=v;
       trEl.appendChild(td);
