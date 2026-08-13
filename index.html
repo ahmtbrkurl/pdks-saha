@@ -189,6 +189,7 @@ let currentMode = null;
 let verifiedGps = {lat:null,lng:null};
 let compressedBase64 = "";
 let nfcQueueV6=[];
+let nfcReaderV6=null;
 let nfcWorkerRunningV6=false;
 let cachedPublicIPv6="";
 let cachedPublicIPAtV6=0;
@@ -237,6 +238,11 @@ async function getCachedPublicIPv6(force=false){
 function queueNfcRecordV6(data){
   nfcQueueV6.push(data);
   saveNfcQueueV6();
+
+  logMessage(
+    `[NFC QUEUE] UID=${data.nfc_uid||"YOK"} eklendi. Queue=${nfcQueueV6.length}`
+  );
+
   runNfcWorkerV6();
 }
 
@@ -776,38 +782,86 @@ function logError(text,errorType="CLIENT_ERROR",actionName="",uid=""){
 
 
 async function startNfcScan(){
-  if(!("NDEFReader" in window)){alert("Web NFC bu cihazda desteklenmiyor.");return;}
-  if(!currentMode||(currentMode!=="GİRİŞ"&&currentMode!=="ÇIKIŞ")){alert("Önce GİRİŞ veya ÇIKIŞ seçin.");return;}
-  if(verifiedGps.lat===null){alert("Önce konum alın.");return;}
+  if(!("NDEFReader" in window)){
+    alert("Web NFC bu cihazda desteklenmiyor.");
+    return;
+  }
+
+  if(!currentMode||(currentMode!=="GİRİŞ"&&currentMode!=="ÇIKIŞ")){
+    alert("Önce GİRİŞ veya ÇIKIŞ seçin.");
+    return;
+  }
+
+  if(verifiedGps.lat===null){
+    alert("Önce konum alın.");
+    return;
+  }
 
   try{
-    const ndef=new NDEFReader();
-    await ndef.scan();
-    getCachedPublicIPv6(false);
+    // Reader'ı global tutuyoruz; bazı Android/Chrome sürümlerinde
+    // lokal nesnenin yaşam döngüsü event teslimini etkileyebiliyor.
+    nfcReaderV6=new NDEFReader();
 
-    updateStatus(`${currentMode} - NFC aktif. Kartları seri şekilde okutabilirsiniz.`,"#cce5ff","#004085");
-    logMessage("[NFC] Tarama aktif. Seri kart okuma hazır.");
-
-    ndef.onreading=(event)=>{
+    const onReading=(event)=>{
       const uid=String(event.serialNumber||"").trim();
+
       if(!uid){
         logError("[NFC] UID alınamadı.","NFC_UID_MISSING",currentMode,"");
         return;
       }
 
       playBip();
+
+      // KRİTİK: hiçbir await yok.
+      // Kart anında lokal kuyruğa alınır.
       queueNfcRecordV6(createFastNfcRecordV6(uid));
-      logMessage(`[NFC] UID=${uid} → kuyruklandı. Bekleyen=${nfcQueueV6.length}`);
-      updateStatus(`KART OKUNDU: ${uid} — Sıradaki kartı okutabilirsiniz.`,"#d4edda","#155724");
+
+      logMessage(
+        `[NFC] UID=${uid} → KUYRUKLANDI. Bekleyen=${nfcQueueV6.length}`
+      );
+
+      updateStatus(
+        `KART OKUNDU: ${uid} — Sıradaki kartı okutabilirsiniz.`,
+        "#d4edda",
+        "#155724"
+      );
     };
 
-    ndef.onreadingerror=()=>{
-      logError("[NFC] Kart okuma hatası.","NFC_READ_ERROR",currentMode,"");
+    const onReadingError=(event)=>{
+      logError(
+        "[NFC READ ERROR] Kart okunamadı.",
+        "NFC_READ_ERROR",
+        currentMode,
+        ""
+      );
     };
 
+    // Event listener'ları scan() ÖNCESİNDE bağlıyoruz.
+    nfcReaderV6.addEventListener("reading",onReading);
+    nfcReaderV6.addEventListener("readingerror",onReadingError);
+
+    await nfcReaderV6.scan();
+
+    getCachedPublicIPv6(false);
+
+    updateStatus(
+      `${currentMode} - NFC aktif. Kartları seri şekilde okutabilirsiniz.`,
+      "#cce5ff",
+      "#004085"
+    );
+
+    logMessage("[NFC] Tarama aktif. Seri kart okuma hazır.");
+
+    // Önceden kuyrukta kalan kayıt varsa arka planda gönder.
     runNfcWorkerV6();
+
   }catch(error){
-    logError(`[NFC HATA] ${error}`,"NFC_ERROR",currentMode||"","");
+    logError(
+      `[NFC HATA] ${error && error.message ? error.message : error}`,
+      "NFC_ERROR",
+      currentMode||"",
+      ""
+    );
   }
 }
 
