@@ -134,7 +134,7 @@ h3{margin:0;color:#333;font-size:20px}
     <button class="mode-btn" id="btn-RAPORLU" onclick="setMode('RAPORLU')" disabled>RAPORLU</button>
   </div>
 
-  <div id="statusBox" class="status">Lütfen önce giriş yapın.</div>
+  <div id="statusBox" class="status"></div>
 
   <button class="action-btn" id="gpsBtn" onclick="getLiveLocation()" disabled>1. Konum Al ve Kilitle</button>
   <button class="action-btn btn-green" id="nfcBtn" onclick="startNfcScan()" disabled>2. NFC Kart Okut</button>
@@ -200,8 +200,8 @@ const T = {
   tr:{
     title:"PDKS Saha Terminali", online:"📡 Çevrimiçi - Güvenli Senkronizasyon", offline:"⚠️ Çevrimdışı - Veriler cihazda tutulacak",
     username:"Kullanıcı Adı:", password:"Şifre:", login:"Giriş Yap", logout:"Çıkış Yap",
-    loginFirst:"Lütfen önce giriş yapın.", loginSuccess:"Giriş başarılı. Mod seçin.",
-    location:"1. Konum Al ve Kilitle", nfc:"2. NFC Kart Okut", leave:"İZİNLİ", sick:"RAPORLU",
+    loginFirst:"Lütfen önce giriş yapın.", loginSuccess:"Giriş başarılı. Mod seçin.", statusLoginFirst:"Lütfen önce giriş yapın.",
+    location:"1. Konum Al ve Kilitle", nfc:"2. NFC Kart Okut", entry:"GİRİŞ (NFC)", exit:"ÇIKIŞ (NFC)", leave:"İZİNLİ", sick:"RAPORLU",
     personSelect:"Data gireceğiniz personeli seçiniz:", userPanel:"Veriler sizin adınıza girilecektir.",
     photo:"⚠️ Belge Fotoğrafı Çekin:", ready:"Hazır.", save:"Verileri ve Durumu Kaydet",
     site:"SAHA MEVCUDU", person:"kişi", report:"Formen Raporu", show:"Raporu Göster", print:"Yazdır",
@@ -211,15 +211,13 @@ const T = {
     offlineSaved:"İnternet yok. Kayıt cihaza alındı.", sessionExpired:"Oturum süresi doldu. Lütfen tekrar giriş yapın.",
     noData:"Bu tarih için kayıt bulunamadı.", printTitle:"PDKS SAHA PERSONEL RAPORU",
     printTime:"Rapor oluşturma zamanı", legendGreen:"Sahada", legendYellow:"Çıkış", legendBlue:"İzinli", legendOrange:"Raporlu",
-    invalidDate:"Geçersiz tarih.", today:"Bugün", unknown:"Bilinmiyor",
-    actionEntry:"GİRİŞ", actionExit:"ÇIKIŞ", actionLeave:"İZİNLİ", actionSick:"RAPORLU",
-    reportDateHeader:"Seçilen tarih", reportActionHeader:"İşlem Tipi", reportPersonHeader:"Personel_ID_Ad_Soyad"
+    invalidDate:"Geçersiz tarih.", today:"Bugün", unknown:"Bilinmiyor"
   },
   ru:{
     title:"Терминал ПДКС", online:"📡 Онлайн - Безопасная синхронизация", offline:"⚠️ Офлайн - Данные сохранены на устройстве",
     username:"Имя пользователя:", password:"Пароль:", login:"Войти", logout:"Выйти",
-    loginFirst:"Сначала выполните вход.", loginSuccess:"Вход выполнен. Выберите режим.",
-    location:"1. Получить и зафиксировать геопозицию", nfc:"2. Сканировать NFC-карту", leave:"ОТПУСК", sick:"БОЛЬНИЧНЫЙ",
+    loginFirst:"Сначала выполните вход.", loginSuccess:"Вход выполнен. Выберите режим.", statusLoginFirst:"Сначала выполните вход.",
+    location:"1. Получить и зафиксировать геопозицию", nfc:"2. Сканировать NFC-карту", entry:"ВХОД (NFC)", exit:"ВЫХОД (NFC)", leave:"ОТПУСК", sick:"БОЛЬНИЧНЫЙ",
     personSelect:"Выберите сотрудника:", userPanel:"Данные будут внесены от вашего имени.",
     photo:"⚠️ Сфотографируйте документ:", ready:"Готово.", save:"Сохранить данные",
     site:"НА ПЛОЩАДКЕ", person:"чел.", report:"Отчет для мастера", show:"Показать отчет", print:"Печать",
@@ -229,15 +227,13 @@ const T = {
     offlineSaved:"Нет интернета. Запись сохранена на устройстве.", sessionExpired:"Сессия истекла. Войдите снова.",
     noData:"За эту дату записей нет.", printTitle:"ОТЧЕТ О СОТРУДНИКАХ НА ПЛОЩАДКЕ",
     printTime:"Время формирования", legendGreen:"На площадке", legendYellow:"Выход", legendBlue:"Отпуск", legendOrange:"Больничный",
-    invalidDate:"Неверная дата.", today:"Сегодня", unknown:"Неизвестно",
-    actionEntry:"ВХОД", actionExit:"ВЫХОД", actionLeave:"ОТПУСК", actionSick:"БОЛЬНИЧНЫЙ",
-    reportDateHeader:"Выбранная дата", reportActionHeader:"Тип операции", reportPersonHeader:"ID_Сотрудник_ФИО"
+    invalidDate:"Неверная дата.", today:"Сегодня", unknown:"Неизвестно"
   },
   en:{
     title:"PDKS Field Terminal", online:"📡 Online - Secure synchronization", offline:"⚠️ Offline - Data stored on device",
     username:"Username:", password:"Password:", login:"Login", logout:"Logout",
-    loginFirst:"Please log in first.", loginSuccess:"Login successful. Select a mode.",
-    location:"1. Get and Lock Location", nfc:"2. Scan NFC Card", leave:"LEAVE", sick:"SICK LEAVE",
+    loginFirst:"Please log in first.", loginSuccess:"Login successful. Select a mode.", statusLoginFirst:"Please log in first.",
+    location:"1. Get and Lock Location", nfc:"2. Scan NFC Card", entry:"ENTRY (NFC)", exit:"EXIT (NFC)", leave:"LEAVE", sick:"SICK LEAVE",
     personSelect:"Select the employee:", userPanel:"Data will be entered on your behalf.",
     photo:"⚠️ Take a document photo:", ready:"Ready.", save:"Save Data",
     site:"ON SITE", person:"people", report:"Supervisor Report", show:"Show Report", print:"Print",
@@ -247,9 +243,7 @@ const T = {
     offlineSaved:"No internet. Record saved on the device.", sessionExpired:"Session expired. Please log in again.",
     noData:"No records for this date.", printTitle:"PDKS FIELD PERSONNEL REPORT",
     printTime:"Report generated", legendGreen:"On site", legendYellow:"Checked out", legendBlue:"Leave", legendOrange:"Sick leave",
-    invalidDate:"Invalid date.", today:"Today", unknown:"Unknown",
-    actionEntry:"ENTRY", actionExit:"EXIT", actionLeave:"LEAVE", actionSick:"SICK LEAVE",
-    reportDateHeader:"Selected date", reportActionHeader:"Action Type", reportPersonHeader:"Personnel_ID_Name"
+    invalidDate:"Invalid date.", today:"Today", unknown:"Unknown"
   }
 };
 
@@ -269,17 +263,16 @@ function applyLanguage(){
   const lang=localStorage.getItem(STORAGE_LANG_KEY)||"tr";
   document.documentElement.lang=lang;
   document.getElementById("title").textContent=tr("title");
+  document.getElementById("statusBox").textContent=tr("statusLoginFirst");
   document.getElementById("usernameLabel").textContent=tr("username");
   document.getElementById("passwordLabel").textContent=tr("password");
   document.getElementById("loginBtn").textContent=tr("login");
   document.getElementById("gpsBtn").textContent=tr("location");
   document.getElementById("nfcBtn").textContent=tr("nfc");
-
-  // İşlem butonları da seçilen dile göre çevrilir.
-  document.getElementById("btn-GİRİŞ").textContent=tr("actionEntry")+" (NFC)";
-  document.getElementById("btn-ÇIKIŞ").textContent=tr("actionExit")+" (NFC)";
-  document.getElementById("btn-İZİNLİ").textContent=tr("actionLeave");
-  document.getElementById("btn-RAPORLU").textContent=tr("actionSick");
+  document.getElementById("btn-GİRİŞ").textContent=tr("entry");
+  document.getElementById("btn-ÇIKIŞ").textContent=tr("exit");
+  document.getElementById("btn-İZİNLİ").textContent=tr("leave");
+  document.getElementById("btn-RAPORLU").textContent=tr("sick");
   document.getElementById("personSelectLabel").textContent=tr("personSelect");
   document.getElementById("userPanelText").textContent=tr("userPanel");
   document.getElementById("photoLabel").textContent=tr("photo");
@@ -422,12 +415,7 @@ function setMode(mode){
     document.getElementById("nfcBtn").style.display="block";
     document.getElementById("personnelBox").style.display="none";
     document.getElementById("fileUploadBox").style.display="none";
-
-    const translatedMode =
-      mode==="GİRİŞ" ? tr("actionEntry") :
-      tr("actionExit");
-
-    updateStatus(translatedMode+" - "+tr("location"),"#cce5ff","#004085");
+    updateStatus(mode+" - "+tr("location"),"#cce5ff","#004085");
   }else{
     document.getElementById("nfcBtn").style.display="none";
     document.getElementById("personnelBox").style.display="block";
@@ -440,11 +428,7 @@ function setMode(mode){
       document.getElementById("formenPanel").style.display="none";
       document.getElementById("userPanel").style.display="block";
     }
-    const translatedMode =
-      mode==="İZİNLİ" ? tr("actionLeave") :
-      tr("actionSick");
-
-    updateStatus(translatedMode+" - "+tr("location"),"#cce5ff","#004085");
+    updateStatus(mode+" - "+tr("location"),"#cce5ff","#004085");
   }
 
   document.getElementById("gpsBtn").disabled=false;
@@ -961,17 +945,6 @@ async function loadReport(){
   }
 }
 
-function translateAction(action){
-  const a=String(action||"").trim();
-
-  if(a==="GİRİŞ") return tr("actionEntry");
-  if(a==="ÇIKIŞ") return tr("actionExit");
-  if(a==="İZİNLİ") return tr("actionLeave");
-  if(a==="RAPORLU") return tr("actionSick");
-
-  return a;
-}
-
 function buildPrintArea(report){
   const area=document.getElementById("printArea");
   area.textContent="";
@@ -1000,7 +973,7 @@ function buildPrintArea(report){
 
   const thead=document.createElement("thead");
   const hr=document.createElement("tr");
-  [tr("reportDateHeader"),tr("reportActionHeader"),tr("reportPersonHeader")].forEach(x=>{
+  [tr("selected").replace(":",""),"İşlem Tipi","Personel_ID_Ad_Soyad"].forEach(x=>{
     const th=document.createElement("th");
     th.textContent=x;
     hr.appendChild(th);
@@ -1018,7 +991,7 @@ function buildPrintArea(report){
     if(row.status==="izinli")trEl.className="row-izinli";
     if(row.status==="raporlu")trEl.className="row-raporlu";
 
-    [row.tarih_saat,translateAction(row.islem_tipi),row.personel].forEach(v=>{
+    [row.tarih_saat,row.islem_tipi,row.personel].forEach(v=>{
       const td=document.createElement("td");
       td.textContent=v;
       trEl.appendChild(td);
