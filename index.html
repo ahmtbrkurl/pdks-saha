@@ -100,7 +100,7 @@ h3{margin:0;color:#333;font-size:20px}
 
 <div class="card">
   <div class="topbar">
-    <h3 id="title">v2PDKS Saha Terminali</h3>
+    <h3 id="title">PDKS Saha Terminali</h3>
     <select id="languageSelect" class="lang" onchange="setLanguage(this.value)">
       <option value="tr">🇹🇷 Türkçe</option>
       <option value="ru">🇷🇺 Русский</option>
@@ -179,6 +179,7 @@ h3{margin:0;color:#333;font-size:20px}
    CONFIG
    ========================= */
 const API_URL = "https://script.google.com/macros/s/AKfycby7xgRdGuzfWsPXTS3_9Zb3DUUqD7Dave_lyXVYeIVN0NXpHf_ufuqYuUnXRioMmcLd/exec";
+    const AUTH_TOKEN = "PDKS-SECURE-AUTH-98f4b2c17e6a3d5f8b9e0a1c2d3e4f5a";
 const STORAGE_LANG_KEY = "pdks_language_v3";
 const QUEUE_KEY = "pdksQueue_v3";
 const ERROR_QUEUE_KEY = "pdksErrorQueue_v3";
@@ -264,7 +265,9 @@ async function runNfcWorkerV6(){
     while(nfcQueueV6.length&&navigator.onLine){
       const record=nfcQueueV6[0];
       try{
-        logMessage(`[NFC SYNC] Gönderiliyor UID=${record.nfc_uid||"YOK"}`);
+        logMessage(
+          `[NFC SYNC] Gönderiliyor UID=${record.nfc_uid||"YOK"} Session=${record.session?"OK":"YOK"}`
+        );
         await apiPost(record);
         nfcQueueV6.shift();
         saveNfcQueueV6();
